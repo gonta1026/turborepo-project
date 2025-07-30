@@ -1,32 +1,67 @@
-# `Turborepo` Vite starter
+# `Turborepo` Vite スターター
 
-This is a community-maintained example. If you experience a problem, please submit a pull request with a fix. GitHub Issues will be closed.
+### アプリとパッケージ
 
-## Using this example
+- `dashboard`: React [Vite](https://vitejs.dev) TypeScriptアプリ
+- `api`: Go Ginフレームワークを使用したAPIサーバー
+- `terraform`: GCPリソース管理用のTerraform設定
+- `@repo/ui`: `dashboard`アプリケーションで共有されるコンポーネントライブラリ
+- `@repo/biome-config`: 共有された`Biome`設定
+- `@repo/typescript-config`: モノレポ全体で使用される`tsconfig.json`
 
-Run the following command:
+各パッケージとアプリは100% [TypeScript](https://www.typescriptlang.org/)です（APIアプリはGoです）。
+
+### ツール
+
+このTurborepoには以下のツールがあらかじめ設定されています：
+
+- [TypeScript](https://www.typescriptlang.org/) 静的型チェック用
+- [Biome](https://biomejs.dev/) コードのリントとフォーマット用
+- [Vite](https://vitejs.dev/) フロントエンドビルドツール
+- [Vitest](https://vitest.dev/) フロントエンドテスト用
+- [Go](https://golang.org/) バックエンドAPI開発用
+- [Gin](https://gin-gonic.com/) Go Webフレームワーク
+- [Terraform](https://www.terraform.io/) インフラストラクチャ・アズ・コード
+
+### 開発コマンド
+
+#### アプリケーション開発
 
 ```sh
-npx create-turbo@latest -e with-vite-react
+# 開発サーバーを起動
+npm run dev
+
+# プロジェクトをビルド
+npm run build
+
+# テストを実行
+npm run test
+
+# コードのフォーマットとリント
+npm run format-and-lint
+
+# コードのフォーマットとリント（自動修正）
+npm run format-and-lint:fix
 ```
 
-## What's inside?
+#### インフラ管理
 
-This Turborepo includes the following packages and apps:
+```sh
+# Terraform初期設定（初回のみ）
+npm run infra:setup
 
-### Apps and Packages
+# Dev環境のプラン確認
+npm run infra:dev:plan
 
-- `dashboard`: react [vite](https://vitejs.dev) ts app
-- `@repo/ui`: a stub component library shared by `dashboard` application
-- `@repo/eslint-config`: shared `eslint` configurations
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+# Dev環境にデプロイ
+npm run infra:dev:apply
 
-Each package and app is 100% [TypeScript](https://www.typescriptlang.org/).
+# Dev環境を削除
+npm run infra:dev:destroy
 
-### Utilities
+# Terraformフォーマット
+npm run terraform:format
 
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+# Terraform設定の検証
+npm run terraform:validate
+```

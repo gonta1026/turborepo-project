@@ -25,6 +25,23 @@
 		},
 		"clean": {
 			"cache": false
+		},
+		"terraform:format": {
+			"cache": false
+		},
+		"terraform:validate": {
+			"cache": false
+		},
+		"terraform:plan": {
+			"cache": false,
+			"dependsOn": ["terraform:validate"]
+		},
+		"terraform:apply": {
+			"cache": false,
+			"dependsOn": ["terraform:plan"]
+		},
+		"terraform:destroy": {
+			"cache": false
 		}
 	}
 }

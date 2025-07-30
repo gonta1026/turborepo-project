@@ -5,7 +5,16 @@
 		"dev": "turbo run dev",
 		"format-and-lint": "turbo run format-and-lint",
 		"format-and-lint:fix": "turbo run format-and-lint:fix",
-		"test": "turbo run test"
+		"test": "turbo run test",
+		"terraform:format": "turbo run terraform:format",
+		"terraform:validate": "turbo run terraform:validate",
+		"terraform:plan": "turbo run terraform:plan",
+		"terraform:apply": "turbo run terraform:apply",
+		"terraform:destroy": "turbo run terraform:destroy",
+		"infra:dev:plan": "cd apps/terraform && make plan-dev",
+		"infra:dev:apply": "cd apps/terraform && make apply-dev",
+		"infra:dev:destroy": "cd apps/terraform && make destroy-dev",
+		"infra:setup": "cd apps/terraform && make setup-gcs-backend"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.1.2",
