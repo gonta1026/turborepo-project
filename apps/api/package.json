@@ -11,7 +11,12 @@
     "format-and-lint": "go fmt ./... && go vet ./...",
     "format-and-lint:fix": "go fmt ./... && go vet ./... && go mod tidy"
   },
-  "keywords": ["go", "gin", "api", "turborepo"],
+  "keywords": [
+    "go",
+    "gin",
+    "api",
+    "turborepo"
+  ],
   "author": "",
   "license": "MIT"
-} 
+}

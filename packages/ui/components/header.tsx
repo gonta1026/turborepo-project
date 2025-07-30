@@ -1,13 +1,13 @@
-import type React from 'react';
+import type React from 'react'
 
 interface HeaderProps {
-  title: string;
+  title: string
 }
 
 export const Header: React.FC<HeaderProps> = ({ title }) => {
   return (
-    <header id='header'>
+    <header id="header">
       <h1>{title}</h1>
     </header>
-  );
-};
+  )
+}

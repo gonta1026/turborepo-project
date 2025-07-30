@@ -23,6 +23,17 @@
 		"test": {
 			"cache": false
 		},
+		"lint": {
+			"cache": false
+		},
+		"biome:check": {
+			"dependsOn": ["^biome:check"],
+			"cache": false
+		},
+		"biome:fix": {
+			"dependsOn": ["^biome:fix"],
+			"cache": false
+		},
 		"clean": {
 			"cache": false
 		},

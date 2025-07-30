@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+build/
+**/dist/
+**/build/
+
+# Development tools
+.turbo/
+**/.turbo/
+tmp/
+**/tmp/
+
+# Next.js
+.next/
+**/.next/
+
+# Testing
+coverage/
+**/coverage/
+
+# Version control
+.git/
+
+# Golang files
+**/*.go
+**/go.mod
+**/go.sum
+apps/api/
+
+# Terraform
+apps/terraform/**/*.tf
+apps/terraform/**/*.tfvars 
