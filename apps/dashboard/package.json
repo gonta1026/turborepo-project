@@ -13,12 +13,13 @@
 	"dependencies": {
 		"@repo/ui": "*",
 		"react": "^19.1.1",
-		"react-dom": "^19.1.1"
+		"react-dom": "^19.1.1",
+		"react-router-dom": "^7.7.1"
 	},
 	"devDependencies": {
-		"@repo/typescript-config": "*",
-		"@repo/biome-config": "*",
 		"@biomejs/biome": "^2.1.2",
+		"@repo/biome-config": "*",
+		"@repo/typescript-config": "*",
 		"@types/react": "^19.1.8",
 		"@types/react-dom": "^19.1.6",
 		"@vitejs/plugin-react": "^4.7.0",
