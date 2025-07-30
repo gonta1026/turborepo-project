@@ -4,7 +4,8 @@
 		"build": "turbo run build",
 		"dev": "turbo run dev",
 		"format-and-lint": "turbo run format-and-lint",
-		"format-and-lint:fix": "turbo run format-and-lint:fix"
+		"format-and-lint:fix": "turbo run format-and-lint:fix",
+		"test": "turbo run test"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.1.2",

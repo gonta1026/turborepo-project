@@ -1,0 +1,17 @@
+{
+  "name": "api",
+  "version": "1.0.0",
+  "description": "Go API server with Gin framework",
+  "scripts": {
+    "dev": "go run main.go",
+    "build": "go build -o bin/api main.go",
+    "start": "./bin/api",
+    "clean": "rm -rf bin/",
+    "test": "go test ./...",
+    "format-and-lint": "go fmt ./... && go vet ./...",
+    "format-and-lint:fix": "go fmt ./... && go vet ./... && go mod tidy"
+  },
+  "keywords": ["go", "gin", "api", "turborepo"],
+  "author": "",
+  "license": "MIT"
+} 
