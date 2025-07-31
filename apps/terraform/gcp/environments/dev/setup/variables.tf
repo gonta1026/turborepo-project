@@ -110,4 +110,12 @@ variable "network_tags" {
   description = "Network tags for the instance"
   type        = list(string)
   default     = ["http-server", "https-server", "ssh"]
-} 
+}
+
+# IAM関連の変数
+variable "dev_team_group" {
+  description = "Development team Google group email"
+  type        = string
+  default     = "terraform-dev-team@googlegroups.com"
+}
+

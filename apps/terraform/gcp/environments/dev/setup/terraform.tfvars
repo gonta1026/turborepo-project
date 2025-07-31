@@ -84,4 +84,7 @@ labels = {
 }
 
 # ネットワークタグ設定
-network_tags = ["http-server", "https-server", "ssh", "sample-instance"] 
+network_tags = ["http-server", "https-server", "ssh", "sample-instance"]
+
+# IAM設定（dev環境は編集者権限でシンプルに）
+dev_team_group = "terraform-gcp-dev-team@googlegroups.com"
