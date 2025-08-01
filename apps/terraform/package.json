@@ -5,15 +5,12 @@
   "description": "Infrastructure as Code using Terraform for GCP resources",
   "scripts": {
     "help": "make help",
-    "plan:dev": "make plan-dev",
-    "apply:dev": "make apply-dev",
-    "destroy:dev": "make destroy-dev",
-    "init:all": "make init-all",
     "setup:gcs-backend": "make setup-gcs-backend",
     "migrate:to-gcs": "make migrate-to-gcs",
     "format": "terraform fmt -recursive .",
     "validate": "terraform validate",
-    "clean": "find . -name '.terraform' -type d -exec rm -rf {} + 2>/dev/null || true"
+    "clean": "find . -name '.terraform' -type d -exec rm -rf {} + 2>/dev/null || true",
+    "lint": "terraform fmt -recursive . && terraform validate"
   },
   "keywords": [
     "terraform",

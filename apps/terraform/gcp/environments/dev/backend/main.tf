@@ -28,7 +28,7 @@ resource "google_storage_bucket" "terraform_state" {
 
   # パブリックアクセスを防ぐ
   public_access_prevention = "enforced"
-  
+
   # uniform bucket-level access を有効化
   uniform_bucket_level_access = true
 
@@ -40,11 +40,6 @@ resource "google_storage_bucket" "terraform_state" {
     action {
       type = "Delete"
     }
-  }
-
-  # 暗号化設定（Google管理の暗号化キー使用）
-  encryption {
-    default_kms_key_name = ""
   }
 
   labels = {
@@ -62,4 +57,4 @@ resource "google_storage_bucket_iam_binding" "terraform_state_admin" {
     "projectEditor:${var.project_id}",
     "projectOwner:${var.project_id}",
   ]
-} 
+}

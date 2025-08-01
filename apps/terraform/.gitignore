@@ -10,5 +10,19 @@
 # 変数ファイル（機密情報を含む場合）
 terraform.tfvars.secret
 *.auto.tfvars
+.terraform.tfvars.json
 
+# 環境変数ファイル
+.envrc
+.env
+
+# ログファイル
+*.log
+terraform.log
+
+# OS関連
+.DS_Store
+Thumbs.db
+
+# 一時ディレクトリ
 tmp/
