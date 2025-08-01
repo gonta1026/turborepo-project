@@ -1,10 +1,25 @@
-# 将来的なCloud Storage/CDN用のアウトプット（必要に応じて追加）
+# Cloud Storage outputs
+output "bucket_name" {
+  description = "Storage bucket name"
+  value       = google_storage_bucket.website_bucket.name
+}
 
-# bucket_url = google_storage_bucket.website_bucket.url
-# cdn_ip_address = google_compute_global_address.cdn_ip.address
-# website_url = "https://${var.domain_name}"
+output "bucket_url" {
+  description = "Storage bucket URL"
+  value       = google_storage_bucket.website_bucket.url
+}
 
-# 現在は基本的なプロジェクト情報のみをアウトプット
+output "bucket_region" {
+  description = "Storage bucket region"
+  value       = google_storage_bucket.website_bucket.location
+}
+
+output "website_url" {
+  description = "Static website URL"
+  value       = "https://storage.googleapis.com/${google_storage_bucket.website_bucket.name}/index.html"
+}
+
+# 基本的なプロジェクト情報
 output "project_id" {
   description = "GCP Project ID"
   value       = var.project_id
@@ -13,4 +28,4 @@ output "project_id" {
 output "region" {
   description = "GCP region"
   value       = var.region
-} 
+}
