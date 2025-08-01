@@ -29,28 +29,28 @@ setup-gcs-backend:
 migrate-to-gcs:
 	@echo "🔄 ローカル状態ファイルをGCSに移行します..."
 	@echo "⚠️  移行前に既存の terraform.tfstate のバックアップを作成することを推奨します"
-	cd gcp/environments/dev/setup && cp terraform.tfstate terraform.tfstate.backup 2>/dev/null || true
-	cd gcp/environments/dev/setup && terraform init -migrate-state
+	cd gcp/environments/dev && cp terraform.tfstate terraform.tfstate.backup 2>/dev/null || true
+	cd gcp/environments/dev && terraform init -migrate-state
 	@echo "✅ 状態ファイルの移行完了"
 
 # 全環境の初期化
 init-all:
 	@echo "🔧 全環境のterraform initを実行します..."
-	cd gcp/environments/dev/setup && terraform init
+	cd gcp/environments/dev && terraform init
 	@echo "✅ 初期化完了"
 
 # Dev環境
 plan-dev:
 	@echo "🔧 Dev環境のplanを実行します..."
-	cd gcp/environments/dev/setup && terraform plan && cd ../../..
+	cd gcp/environments/dev && terraform plan && cd ../../..
 
 apply-dev:
 	@echo "🚀 Dev環境にapplyします..."
-	cd gcp/environments/dev/setup && terraform apply && cd ../../..
+	cd gcp/environments/dev && terraform apply && cd ../../..
 
 destroy-dev:
 	@echo "🗑️ Dev環境を削除します..."
-	cd gcp/environments/dev/setup && terraform destroy && cd ../../..
+	cd gcp/environments/dev && terraform destroy && cd ../../..
 
 
 

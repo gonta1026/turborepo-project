@@ -14,7 +14,7 @@ variable "zone" {
   type        = string
 }
 
-# Internal固有の変数
+# Internal Cloud Storage設定
 variable "bucket_name" {
   description = "Name of the Cloud Storage bucket for internal static website hosting"
   type        = string
@@ -22,7 +22,7 @@ variable "bucket_name" {
 }
 
 variable "domain_name" {
-  description = "Custom domain name for the CDN (optional)"
+  description = "Custom domain name (optional)"
   type        = string
   default     = ""
 }

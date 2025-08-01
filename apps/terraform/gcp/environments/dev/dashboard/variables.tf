@@ -14,7 +14,7 @@ variable "zone" {
   type        = string
 }
 
-# Dashboard固有の変数
+# Dashboard Cloud Storage設定
 variable "bucket_name" {
   description = "Name of the Cloud Storage bucket for dashboard static website hosting"
   type        = string
@@ -32,4 +32,3 @@ variable "labels" {
   type        = map(string)
   default     = {}
 }
-

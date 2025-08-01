@@ -9,6 +9,9 @@ zone   = "asia-northeast1-a"
 bucket_name = "terraform-gcp-466623-internal-frontend"
 domain_name = "" # カスタムドメインを使用する場合は設定
 
+# Internal環境では CDN/Load Balancer は使用しない
+# シンプルなCloud Storageのみでの静的ホスティング
+
 # ラベル設定 - Dev Internal専用
 labels = {
   environment = "dev"
