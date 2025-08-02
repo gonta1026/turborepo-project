@@ -49,3 +49,54 @@ resource "google_storage_bucket_iam_member" "public_access" {
   role   = "roles/storage.objectViewer"
   member = "allUsers"
 }
+
+# ======================================
+# CDN Backend Bucket Configuration
+# ======================================
+
+# Backend bucket for Cloud CDN
+resource "google_compute_backend_bucket" "website_backend" {
+  name        = "${var.project_id}-dashboard-backend"
+  bucket_name = google_storage_bucket.website_bucket.name
+  description = "Backend bucket for dashboard static website CDN"
+
+  # CDN設定
+  enable_cdn = true
+
+  cdn_policy {
+    # キャッシュモード設定
+    cache_mode        = "CACHE_ALL_STATIC"
+    default_ttl       = 3600  # 1時間
+    max_ttl           = 86400 # 24時間
+    client_ttl        = 3600  # 1時間
+    negative_caching  = true
+    serve_while_stale = 86400 # 24時間
+  }
+}
+
+# ======================================
+# HTTPS Load Balancer Configuration
+# ======================================
+
+# URL Map for routing
+resource "google_compute_url_map" "website_url_map" {
+  name            = "${var.project_id}-dashboard-url-map"
+  default_service = google_compute_backend_bucket.website_backend.id
+  description     = "URL map for dashboard static website"
+  # シンプルな設定でまず動作確認
+  # デフォルトですべてのトラフィックをbackend bucketに転送
+}
+
+# 一時的なHTTP Target Proxy（後でHTTPSに置き換え）
+resource "google_compute_target_http_proxy" "website_http_proxy" {
+  name    = "${var.project_id}-dashboard-http-proxy"
+  url_map = google_compute_url_map.website_url_map.id
+}
+
+# HTTP Forwarding Rule
+resource "google_compute_global_forwarding_rule" "website_http_forwarding_rule" {
+  name        = "${var.project_id}-dashboard-http-rule"
+  target      = google_compute_target_http_proxy.website_http_proxy.id
+  port_range  = "80"
+  ip_protocol = "TCP"
+}
