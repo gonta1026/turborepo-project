@@ -46,7 +46,7 @@ provider "google" {
 # index.htmlをメインページとして設定し、404エラー時の専用ページも指定
 # インターネット経由でアクセス可能な静的Webサイトとして公開する
 resource "google_storage_bucket" "website_bucket" {
-  name     = var.bucket_name != "" ? var.bucket_name : "${var.project_id}-dashboard"
+  name     = var.bucket_name
   location = var.region
 
   # 静的ウェブサイトホスティング用の設定
@@ -224,6 +224,53 @@ resource "google_certificate_manager_certificate_map_entry" "website_cert_map_en
   map          = google_certificate_manager_certificate_map.website_cert_map.name
   certificates = [google_certificate_manager_certificate.website_cert.id]
   hostname     = var.domain_name
+}
+
+# ======================================
+# IAM Service Account for GitHub Actions Deployment
+# ======================================
+
+# Service Account for GitHub Actions to deploy to Cloud Storage
+# GitHub ActionsからCloud Storageへのデプロイを行うためのサービスアカウント
+# 必要最小限の権限のみを付与して、セキュリティを確保
+resource "google_service_account" "github_actions_deployer" {
+  account_id   = "github-actions-dashboard"
+  display_name = "GitHub Actions Dashboard Deployer"
+  description  = "Service account for GitHub Actions to deploy dashboard to Cloud Storage"
+}
+
+# Grant Storage Admin role on the specific bucket
+# 特定のバケットに対してのみ管理者権限を付与
+# これにより、GitHub Actionsはこのバケットのみを操作可能
+resource "google_storage_bucket_iam_member" "github_actions_storage_admin" {
+  bucket = google_storage_bucket.website_bucket.name
+  role   = "roles/storage.admin"
+  member = "serviceAccount:${google_service_account.github_actions_deployer.email}"
+}
+
+# Grant permission to invalidate CDN cache
+# CDNキャッシュの無効化権限を付与
+# デプロイ後に古いコンテンツがキャッシュされ続けることを防ぐ
+resource "google_project_iam_member" "github_actions_cdn_admin" {
+  project = var.project_id
+  role    = "roles/compute.loadBalancerAdmin"
+  member  = "serviceAccount:${google_service_account.github_actions_deployer.email}"
+}
+
+# Grant access to Terraform state bucket
+# GitHub ActionsがTerraformの状態ファイルにアクセスできるよう権限を付与
+resource "google_storage_bucket_iam_member" "github_actions_terraform_state" {
+  bucket = "${var.project_id}-terraform-state"
+  role   = "roles/storage.objectViewer"
+  member = "serviceAccount:${google_service_account.github_actions_deployer.email}"
+}
+
+# Create Service Account Key
+# GitHub Actionsで使用するサービスアカウントキーを作成
+# このキーはGitHub Secretsに登録して使用する
+resource "google_service_account_key" "github_actions_key" {
+  service_account_id = google_service_account.github_actions_deployer.name
+  key_algorithm      = "KEY_ALG_RSA_2048"
 }
 
 # HTTPS Target Proxy

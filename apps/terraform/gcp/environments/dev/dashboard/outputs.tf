@@ -108,3 +108,18 @@ output "dns_verification_commands" {
     "curl -I https://${var.domain_name}"
   ]
 }
+
+# ======================================
+# Service Account outputs
+# ======================================
+
+output "service_account_email" {
+  description = "Service account email for GitHub Actions"
+  value       = google_service_account.github_actions_deployer.email
+}
+
+output "service_account_key" {
+  description = "Service account key for GitHub Actions (base64 encoded)"
+  value       = google_service_account_key.github_actions_key.private_key
+  sensitive   = true
+}
