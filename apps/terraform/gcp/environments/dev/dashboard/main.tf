@@ -239,35 +239,40 @@ resource "google_service_account" "github_actions_deployer" {
   description  = "Service account for GitHub Actions to deploy dashboard to Cloud Storage"
 }
 
-# Grant Storage Admin role on the specific bucket
-# 特定のバケットに対してのみ管理者権限を付与
-# これにより、GitHub Actionsはこのバケットのみを操作可能
-resource "google_storage_bucket_iam_member" "github_actions_storage_admin" {
+# Grant Storage Object Admin role on the specific bucket
+# バケット内のオブジェクト（ファイル）の作成・更新・削除権限のみを付与
+# バケット自体の設定変更はできないため、セキュリティリスクを最小化
+resource "google_storage_bucket_iam_member" "github_actions_storage_object_admin" {
   bucket = google_storage_bucket.website_bucket.name
-  role   = "roles/storage.admin"
+  role   = "roles/storage.objectAdmin"
   member = "serviceAccount:${google_service_account.github_actions_deployer.email}"
 }
 
 # Grant permission to invalidate CDN cache
-# CDNキャッシュの無効化権限を付与
-# デプロイ後に古いコンテンツがキャッシュされ続けることを防ぐ
-resource "google_project_iam_member" "github_actions_cdn_admin" {
-  project = var.project_id
-  role    = "roles/compute.loadBalancerAdmin"
-  member  = "serviceAccount:${google_service_account.github_actions_deployer.email}"
+# CDNキャッシュの無効化に必要な最小限の権限を定義するカスタムロール
+# compute.urlMaps.invalidateCache 権限のみを付与して真の最小権限を実現
+resource "google_project_iam_custom_role" "cache_invalidator" {
+  role_id     = "cacheInvalidator"
+  title       = "Cache Invalidator"
+  description = "Custom role for CDN cache invalidation with minimal permissions"
+  permissions = [
+    "compute.urlMaps.invalidateCache",
+    "compute.urlMaps.get"
+  ]
 }
 
-# Grant access to Terraform state bucket
-# GitHub ActionsがTerraformの状態ファイルにアクセスできるよう権限を付与
-resource "google_storage_bucket_iam_member" "github_actions_terraform_state" {
-  bucket = "${var.project_id}-terraform-state"
-  role   = "roles/storage.objectViewer"
-  member = "serviceAccount:${google_service_account.github_actions_deployer.email}"
+# カスタムロールをサービスアカウントに付与
+resource "google_project_iam_member" "github_actions_cache_invalidator" {
+  project = var.project_id
+  role    = google_project_iam_custom_role.cache_invalidator.name
+  member  = "serviceAccount:${google_service_account.github_actions_deployer.email}"
 }
 
 # Create Service Account Key
 # GitHub Actionsで使用するサービスアカウントキーを作成
 # このキーはGitHub Secretsに登録して使用する
+# NOTE: サービスアカウントキーの使用は非推奨です
+# セキュリティ向上のため、Workload Identity Federationの使用を強く推奨をするが「組織」の設定が必要なため、学習用の目的でサービスアカウントを利用する
 resource "google_service_account_key" "github_actions_key" {
   service_account_id = google_service_account.github_actions_deployer.name
   key_algorithm      = "KEY_ALG_RSA_2048"
