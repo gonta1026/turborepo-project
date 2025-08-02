@@ -7,7 +7,7 @@ zone   = "asia-northeast1-a"
 
 # Dashboard Cloud Storage/CDN Configuration
 bucket_name = "terraform-gcp-466623-dashboard-frontend"
-domain_name = "" # カスタムドメインを使用する場合は設定
+domain_name = "dev.dashboard.my-learn-iac-sample.site" # カスタムドメインを使用する場合は設定
 # ラベル設定 - Dashboard専用
 labels = {
   environment = "dev"
