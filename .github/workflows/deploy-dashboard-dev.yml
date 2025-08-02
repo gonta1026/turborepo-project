@@ -24,21 +24,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22.10.0"
-          cache: "npm"
+          # cache: "npm" を削除 - 毎回クリーンインストールするためキャッシュは使用しない
 
-      - name: Cache dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules
-            */*/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
+      # Rollupのネイティブ依存関係エラーを回避するため、キャッシュを無効化
+      # 毎回クリーンインストールを実行してプラットフォーム固有の依存関係を正しく解決
       - name: Install dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: npm ci
+        run: |
+          # node_modulesとpackage-lock.jsonを削除してクリーンな状態にする
+          rm -rf node_modules package-lock.json
+          # 依存関係を新規インストール（Rollupのネイティブバイナリも含む）
+          npm install
 
       - name: Build dashboard
         run: npm run build --workspace=dashboard
