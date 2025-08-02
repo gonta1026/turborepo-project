@@ -170,6 +170,7 @@ resource "google_compute_global_address" "website_ip" {
   name         = "${var.project_id}-dashboard-ip"
   description  = "Static IP for dashboard HTTPS load balancer"
   address_type = "EXTERNAL"
+  address      = "34.111.118.224" # 現在のIPアドレスを固定
 }
 
 # Certificate Manager Certificate (Google-managed)
