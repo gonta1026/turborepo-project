@@ -142,7 +142,7 @@ resource "google_compute_url_map" "https_redirect" {
 # リダイレクト専用のURLマップを使用してHTTPS URLに301リダイレクト
 resource "google_compute_target_http_proxy" "website_http_proxy" {
   name    = "dashboard-http-proxy"
-  url_map = google_compute_url_map.https_redirect.id
+  url_map = google_compute_url_map.https_redirect.id # リダイレクトを無効化
 }
 
 # HTTP Forwarding Rule
@@ -169,7 +169,7 @@ resource "google_compute_global_address" "website_ip" {
   name         = "dashboard-ip"
   description  = "Static IP for dashboard HTTPS load balancer"
   address_type = "EXTERNAL"
-  address      = "34.111.118.224" # 現在のIPアドレスを固定
+  # IPアドレスは自動的に割り当てられます
 }
 
 # Certificate Manager Certificate (Google-managed)
