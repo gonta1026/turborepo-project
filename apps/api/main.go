@@ -1,6 +1,11 @@
 package main
 
 import (
+	"api/config"
+	"api/db"
+	"api/handlers"
+	"api/repository"
+	"api/usecase"
 	"log"
 	"net/http"
 
@@ -18,6 +23,15 @@ type APIResponse struct {
 }
 
 func main() {
+	// Load configuration
+	cfg := config.Load()
+
+	// Initialize database
+	if err := db.InitDB(cfg); err != nil {
+		log.Fatal("Failed to initialize database: ", err)
+	}
+	defer db.CloseDB()
+
 	// Ginのルーターを初期化
 	r := gin.Default()
 
@@ -85,6 +99,21 @@ func main() {
 			}
 			c.JSON(http.StatusCreated, response)
 		})
+
+		// Initialize repository, usecase, and handler
+		todoRepo := repository.NewTodoRepository(db.DB)
+		todoUsecase := usecase.NewTodoUsecase(todoRepo)
+		todoHandler := handlers.NewTodoHandler(todoUsecase)
+
+		// Todo CRUD endpoints
+		todos := v1.Group("/todos")
+		{
+			todos.GET("", todoHandler.GetTodos)
+			todos.GET("/:id", todoHandler.GetTodo)
+			todos.POST("", todoHandler.CreateTodo)
+			todos.PUT("/:id", todoHandler.UpdateTodo)
+			todos.DELETE("/:id", todoHandler.DeleteTodo)
+		}
 	}
 
 	// サーバー起動
