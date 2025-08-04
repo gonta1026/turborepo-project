@@ -32,3 +32,10 @@ variable "labels" {
   type        = map(string)
   default     = {}
 }
+
+# GitHub Actions Workload Identity Federation設定
+variable "github_repository" {
+  description = "GitHub repository in the format 'owner/repo'"
+  type        = string
+  default     = "gonta1026/turborepo-project"
+}

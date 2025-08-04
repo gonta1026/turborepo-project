@@ -277,6 +277,49 @@ resource "google_iam_workload_identity_pool" "github_actions_pool" {
   description               = "Workload Identity Pool for GitHub Actions"
 }
 
+# ======================================
+# Workload Identity Federation Configuration - Step 3: Provider
+# ======================================
+
+# Workload Identity Provider
+# GitHub ActionsのOIDCトークンを検証するプロバイダーを設定
+# 特定のGitHubリポジトリからのリクエストのみを許可してセキュリティを強化
+resource "google_iam_workload_identity_pool_provider" "github_actions_provider" {
+  workload_identity_pool_id          = google_iam_workload_identity_pool.github_actions_pool.workload_identity_pool_id
+  workload_identity_pool_provider_id = "github-provider"
+  display_name                       = "GitHub Actions Provider"
+  description                        = "OIDC identity pool provider for GitHub Actions"
+
+  # プロバイダのマッピングを構成する（ステップ3）
+  attribute_mapping = {
+    "google.subject"       = "assertion.sub"
+    "attribute.actor"      = "assertion.actor"
+    "attribute.repository" = "assertion.repository"
+    "attribute.ref"        = "assertion.ref"
+  }
+
+  # 特定のリポジトリからのアクセスのみを許可
+  attribute_condition = "assertion.repository == '${var.github_repository}'"
+
+  # ID プロバイダを接続する（ステップ2）
+  oidc {
+    issuer_uri = "https://token.actions.githubusercontent.com"
+  }
+}
+
+# ======================================
+# Workload Identity Federation Configuration - Step 4: Access Permission
+# ======================================
+
+# Workload Identity User role binding
+# GitHub ActionsがサービスアカウントとしてGCPリソースにアクセスできるよう権限を付与
+# 特定のリポジトリからのリクエストのみがサービスアカウントを使用できるよう制限
+resource "google_service_account_iam_member" "github_actions_workload_identity_user" {
+  service_account_id = google_service_account.github_actions_deployer.name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github_actions_pool.name}/attribute.repository/${var.github_repository}"
+}
+
 # Create Service Account Key (一時的に残す)
 # GitHub Actionsで使用するサービスアカウントキーを作成
 # このキーはGitHub Secretsに登録して使用する
