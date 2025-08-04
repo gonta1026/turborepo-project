@@ -264,7 +264,20 @@ resource "google_project_iam_member" "github_actions_cache_invalidator" {
   member  = "serviceAccount:${google_service_account.github_actions_deployer.email}"
 }
 
-# Create Service Account Key
+# ======================================
+# Workload Identity Federation Configuration - Step 2: Pool
+# ======================================
+
+# Workload Identity Pool
+# GitHub ActionsとGCPサービスアカウント間の信頼関係を管理するプールを作成
+# 外部IDプロバイダー（GitHub）からのトークンを検証し、GCPリソースへのアクセスを制御
+resource "google_iam_workload_identity_pool" "github_actions_pool" {
+  workload_identity_pool_id = "github-actions-pool"
+  display_name              = "GitHub Actions Pool"
+  description               = "Workload Identity Pool for GitHub Actions"
+}
+
+# Create Service Account Key (一時的に残す)
 # GitHub Actionsで使用するサービスアカウントキーを作成
 # このキーはGitHub Secretsに登録して使用する
 # NOTE: サービスアカウントキーの使用は非推奨です
