@@ -13,3 +13,4 @@ public/dist
 tmp/
 docs/
 .claude/
+.cursor/
