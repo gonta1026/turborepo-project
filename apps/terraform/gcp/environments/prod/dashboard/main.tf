@@ -1,5 +1,9 @@
 # Dashboard Infrastructure Configuration
 
+# ======================================
+# Cloud Storage Configuration
+# ======================================
+
 # Cloud Storageバケット（静的ウェブサイトホスティング）
 resource "google_storage_bucket" "dashboard_frontend" {
   name          = var.bucket_name
@@ -18,9 +22,8 @@ resource "google_storage_bucket" "dashboard_frontend" {
 
   # ラベル設定
   labels = {
-    purpose     = "dashboard-frontend"
-    environment = "production"
-    managed_by  = "terraform"
+    purpose    = "dashboard-frontend"
+    managed_by = "terraform"
   }
 }
 
@@ -68,4 +71,33 @@ resource "google_compute_url_map" "dashboard_frontend" {
   }
 }
 
+# ======================================
+# Data Sources for Shared Resources
+# ======================================
+
+# Reference to Certificate Manager API enabled in shared module
+data "google_project_service" "certificate_manager_api" {
+  service = "certificatemanager.googleapis.com"
+}
+
+
+# Certificate Manager Certificate
+# 指定したドメイン名用のSSL/TLS証明書をGoogleが自動で取得・管理
+# Let's Encryptなどの認証局から有効な証明書を取得し、自動更新も行う
+# HTTPS通信を可能にするために必要で、ブラウザに「安全な接続」として表示される
+resource "google_certificate_manager_certificate" "dashboard_frontend" {
+  name     = "dashboard-frontend-cert"
+  location = "global"
+
+  managed {
+    domains = [var.domain_name]
+  }
+
+  labels = {
+    purpose    = "https-certificate"
+    managed_by = "terraform"
+  }
+
+  depends_on = [data.google_project_service.certificate_manager_api]
+}
 
