@@ -165,3 +165,42 @@ resource "google_compute_global_forwarding_rule" "dashboard_frontend_https" {
   ip_address  = google_compute_global_address.dashboard_frontend.address
 }
 
+# ======================================
+# HTTP to HTTPS Redirect Configuration
+# ======================================
+
+# HTTP to HTTPS redirect URL Map
+# HTTPアクセスを自動的にHTTPSにリダイレクトするための専用URLマップ
+# セキュアな接続を強制し、ユーザーが間違ってHTTPでアクセスしてもHTTPSに誘導
+resource "google_compute_url_map" "https_redirect" {
+  name        = "dashboard-frontend-https-redirect"
+  description = "URL map to redirect HTTP to HTTPS"
+
+  default_url_redirect {
+    redirect_response_code = "MOVED_PERMANENTLY_DEFAULT"
+    strip_query            = false
+    https_redirect         = true
+  }
+}
+
+# HTTP Target Proxy for HTTPS redirect
+# HTTP（非暗号化）接続を処理してHTTPSにリダイレクトするためのプロキシを作成
+# すべてのHTTPリクエストを自動的にHTTPSにリダイレクトしてセキュアな接続を強制
+# リダイレクト専用のURLマップを使用してHTTPS URLに301リダイレクト
+resource "google_compute_target_http_proxy" "dashboard_frontend_http" {
+  name    = "dashboard-frontend-http-proxy"
+  url_map = google_compute_url_map.https_redirect.id
+}
+
+# HTTP Forwarding Rule
+# インターネットからのHTTPリクエスト（ポート80）を受け付けるためのフォワーディングルールを作成
+# グローバルに配置され、世界中からのアクセスを受け付ける
+# HTTPプロキシに接続してリクエストを処理させて、HTTPSにリダイレクト
+resource "google_compute_global_forwarding_rule" "dashboard_frontend_http" {
+  name        = "dashboard-frontend-http-rule"
+  target      = google_compute_target_http_proxy.dashboard_frontend_http.id
+  port_range  = "80"
+  ip_protocol = "TCP"
+  ip_address  = google_compute_global_address.dashboard_frontend.address
+}
+
