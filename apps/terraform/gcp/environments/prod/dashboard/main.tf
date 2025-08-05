@@ -128,3 +128,40 @@ resource "google_certificate_manager_certificate_map_entry" "dashboard_frontend"
   hostname     = var.domain_name
 }
 
+# ======================================
+# HTTPS Load Balancer Configuration
+# ======================================
+
+# Global Static IP Address for Load Balancer
+# HTTPSロードバランサー用のグローバル静的IPアドレスを取得
+# ドメインのDNS設定でこのIPアドレスを指定することで、独自ドメインでアクセス可能になる
+# 静的IPなのでLoad Balancerが再作成されてもIPアドレスが変わることがない
+resource "google_compute_global_address" "dashboard_frontend" {
+  name         = "dashboard-frontend-ip"
+  description  = "Static IP for dashboard HTTPS load balancer"
+  address_type = "EXTERNAL"
+}
+
+# HTTPS Target Proxy
+# HTTPS（暗号化）接続を処理するためのプロキシを作成
+# SSL/TLS証明書を使用してセキュアな通信を実現
+# Certificate Managerで管理された証明書を使用してHTTPS接続を終端する
+resource "google_compute_target_https_proxy" "dashboard_frontend" {
+  name    = "dashboard-frontend-https-proxy"
+  url_map = google_compute_url_map.dashboard_frontend.id
+
+  certificate_map = "//certificatemanager.googleapis.com/${google_certificate_manager_certificate_map.dashboard_frontend.id}"
+}
+
+# HTTPS Forwarding Rule
+# インターネットからのHTTPSリクエスト（ポート443）を受け付けるためのフォワーディングルールを作成
+# 事前に取得した静的IPアドレスを使用して、一貫性のあるアクセスポイントを提供
+# HTTPSプロキシと連携してセキュアな通信を実現し、本番運用に適した設定
+resource "google_compute_global_forwarding_rule" "dashboard_frontend_https" {
+  name        = "dashboard-frontend-https-rule"
+  target      = google_compute_target_https_proxy.dashboard_frontend.id
+  port_range  = "443"
+  ip_protocol = "TCP"
+  ip_address  = google_compute_global_address.dashboard_frontend.address
+}
+
