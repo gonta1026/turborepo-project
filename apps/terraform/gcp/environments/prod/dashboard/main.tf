@@ -204,3 +204,25 @@ resource "google_compute_global_forwarding_rule" "dashboard_frontend_http" {
   ip_address  = google_compute_global_address.dashboard_frontend.address
 }
 
+# ======================================
+# GitHub Actions IAM Configuration
+# ======================================
+
+# Service Account for GitHub Actions to deploy to Cloud Storage
+# GitHub ActionsからCloud Storageへのデプロイを行うためのサービスアカウント
+# 必要最小限の権限のみを付与して、セキュリティを確保
+resource "google_service_account" "github_actions_deployer" {
+  account_id   = "github-actions-dashboard-prod"
+  display_name = "GitHub Actions Dashboard Deployer (Production)"
+  description  = "Service account for GitHub Actions to deploy dashboard to Cloud Storage in production"
+}
+
+# Grant Storage Object Admin role on the specific bucket
+# バケット内のオブジェクト（ファイル）の作成・更新・削除権限のみを付与
+# バケット自体の設定変更はできないため、セキュリティリスクを最小化
+resource "google_storage_bucket_iam_member" "github_actions_storage_object_admin" {
+  bucket = google_storage_bucket.dashboard_frontend.name
+  role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${google_service_account.github_actions_deployer.email}"
+}
+
