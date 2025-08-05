@@ -101,3 +101,30 @@ resource "google_certificate_manager_certificate" "dashboard_frontend" {
   depends_on = [data.google_project_service.certificate_manager_api]
 }
 
+# Certificate Map for Certificate Manager
+# 複数の証明書とドメインの関連付けを管理するためのマップを作成
+# ロードバランサーが適切な証明書を選択できるようにする仕組み
+# 将来的に複数ドメインや証明書を使用する場合の拡張性を提供
+resource "google_certificate_manager_certificate_map" "dashboard_frontend" {
+  name        = "dashboard-frontend-cert-map"
+  description = "Certificate map for dashboard HTTPS"
+
+  labels = {
+    purpose    = "certificate-map"
+    managed_by = "terraform"
+  }
+
+  depends_on = [data.google_project_service.certificate_manager_api]
+}
+
+# Certificate Map Entry
+# 特定のドメイン名と証明書の具体的な関連付けを定義
+# このエントリーにより、指定したドメインにアクセスした際に対応する証明書が使用される
+# ホスト名ベースの証明書選択を実現する重要な設定
+resource "google_certificate_manager_certificate_map_entry" "dashboard_frontend" {
+  name         = "dashboard-frontend-cert-map-entry"
+  map          = google_certificate_manager_certificate_map.dashboard_frontend.name
+  certificates = [google_certificate_manager_certificate.dashboard_frontend.id]
+  hostname     = var.domain_name
+}
+
