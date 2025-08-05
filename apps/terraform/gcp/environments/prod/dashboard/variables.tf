@@ -25,9 +25,16 @@ variable "bucket_name" {
   default     = "terraform-gcp-prod-468022-dashboard-frontend"
 }
 
-# のキャッシュTTL設定
+# CDNキャッシュTTL設定
 variable "cdn_cache_ttl" {
   description = "CDN Cache TTL for Production Environment (in seconds)"
   type        = number
   default     = 3600 # 1時間
+}
+
+# GitHub Actions Workload Identity Federation設定
+variable "github_repository" {
+  description = "GitHub repository in the format 'owner/repo'"
+  type        = string
+  default     = "gonta1026/turborepo-project"
 }
