@@ -48,3 +48,24 @@ resource "google_compute_backend_bucket" "dashboard_frontend" {
     serve_while_stale = 86400 # 24時間
   }
 }
+
+# URLマップ
+resource "google_compute_url_map" "dashboard_frontend" {
+  name            = "dashboard-frontend-url-map"
+  description     = "Dashboard Frontend URL Map"
+  default_service = google_compute_backend_bucket.dashboard_frontend.self_link
+
+  # ホストルール
+  host_rule {
+    hosts        = [var.domain_name]
+    path_matcher = "dashboard-frontend-paths"
+  }
+
+  # パスマッチャー
+  path_matcher {
+    name            = "dashboard-frontend-paths"
+    default_service = google_compute_backend_bucket.dashboard_frontend.self_link
+  }
+}
+
+
