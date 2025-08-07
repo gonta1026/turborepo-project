@@ -117,20 +117,10 @@ output "service_account_email" {
   description = "Service account email for GitHub Actions"
   value       = google_service_account.github_actions_deployer.email
 }
-
-# ======================================
-# Workload Identity Federation outputs
-# ======================================
-
-output "workload_identity_provider" {
-  description = "Workload Identity Provider resource name for GitHub Actions"
-  value       = google_iam_workload_identity_pool_provider.github_actions_provider.name
-}
-
 output "github_actions_configuration" {
   description = "Configuration information for GitHub Actions"
   value = {
-    workload_identity_provider = google_iam_workload_identity_pool_provider.github_actions_provider.name
+    workload_identity_provider = data.terraform_remote_state.shared.outputs.workload_identity_provider_name
     service_account            = google_service_account.github_actions_deployer.email
     project_id                 = var.project_id
     repository                 = var.github_repository

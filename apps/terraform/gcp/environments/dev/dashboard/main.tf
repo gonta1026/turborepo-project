@@ -264,52 +264,14 @@ resource "google_project_iam_member" "github_actions_cache_invalidator" {
   member  = "serviceAccount:${google_service_account.github_actions_deployer.email}"
 }
 
-# ======================================
-# Workload Identity Federation Configuration - Step 2: Pool
-# ======================================
-
-# Workload Identity Pool
-# GitHub ActionsとGCPサービスアカウント間の信頼関係を管理するプールを作成
-# 外部IDプロバイダー（GitHub）からのトークンを検証し、GCPリソースへのアクセスを制御
-resource "google_iam_workload_identity_pool" "github_actions_pool" {
-  workload_identity_pool_id = "github-actions-pool"
-  display_name              = "GitHub Actions Pool"
-  description               = "Workload Identity Pool for GitHub Actions"
-}
-
-# ======================================
-# Workload Identity Federation Configuration - Step 3: Provider
-# ======================================
-
-# Workload Identity Provider
-# GitHub ActionsのOIDCトークンを検証するプロバイダーを設定
-# 特定のGitHubリポジトリからのリクエストのみを許可してセキュリティを強化
-resource "google_iam_workload_identity_pool_provider" "github_actions_provider" {
-  workload_identity_pool_id          = google_iam_workload_identity_pool.github_actions_pool.workload_identity_pool_id
-  workload_identity_pool_provider_id = "github-provider"
-  display_name                       = "GitHub Actions Provider"
-  description                        = "OIDC identity pool provider for GitHub Actions"
-
-  # プロバイダのマッピングを構成する（ステップ3）
-  attribute_mapping = {
-    "google.subject"       = "assertion.sub"
-    "attribute.actor"      = "assertion.actor"
-    "attribute.repository" = "assertion.repository"
-    "attribute.ref"        = "assertion.ref"
-  }
-
-  # 特定のリポジトリからのアクセスのみを許可
-  attribute_condition = "assertion.repository == '${var.github_repository}'"
-
-  # ID プロバイダを接続する（ステップ2）
-  oidc {
-    issuer_uri = "https://token.actions.githubusercontent.com"
+# Remote state reference to shared resources
+data "terraform_remote_state" "shared" {
+  backend = "gcs"
+  config = {
+    bucket = "terraform-gcp-466623-terraform-state"
+    prefix = "dev/shared"
   }
 }
-
-# ======================================
-# Workload Identity Federation Configuration - Step 4: Access Permission
-# ======================================
 
 # Workload Identity User role binding
 # GitHub ActionsがサービスアカウントとしてGCPリソースにアクセスできるよう権限を付与
@@ -317,7 +279,7 @@ resource "google_iam_workload_identity_pool_provider" "github_actions_provider" 
 resource "google_service_account_iam_member" "github_actions_workload_identity_user" {
   service_account_id = google_service_account.github_actions_deployer.name
   role               = "roles/iam.workloadIdentityUser"
-  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github_actions_pool.name}/attribute.repository/${var.github_repository}"
+  member             = "principalSet://iam.googleapis.com/${data.terraform_remote_state.shared.outputs.workload_identity_pool_name}/attribute.repository/${var.github_repository}"
 }
 
 # Create Service Account Key (一時的に残す)

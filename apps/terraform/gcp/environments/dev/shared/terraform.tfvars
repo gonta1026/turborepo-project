@@ -8,8 +8,11 @@ zone   = "asia-northeast1-a"
 # IAM設定 - Dev環境全体用
 dev_team_group = "terraform-gcp-dev-team@googlegroups.com"
 
-# 共通ラル設定
+# 共通ラベル設定
 labels = {
   environment = "dev"
   managed_by  = "terraform"
 }
+
+# GitHub Actions Configuration
+github_repository = "gonta1026/turborepo-project"
