@@ -25,6 +25,24 @@
 
 ### 開発コマンド
 
+#### gcloud
+
+```
+gcloud config configurations list
+```
+
+```
+gcloud config configurations activate [account name]
+```
+
+```
+gcloud auth login
+```
+
+```
+gcloud auth application-default login
+```
+
 #### アプリケーション開発
 
 ```sh
@@ -42,26 +60,4 @@ npm run format-and-lint
 
 # コードのフォーマットとリント（自動修正）
 npm run format-and-lint:fix
-```
-
-#### インフラ管理
-
-```sh
-# Terraform初期設定（初回のみ）
-npm run infra:setup
-
-# Dev環境のプラン確認
-npm run infra:dev:plan
-
-# Dev環境にデプロイ
-npm run infra:dev:apply
-
-# Dev環境を削除
-npm run infra:dev:destroy
-
-# Terraformフォーマット
-npm run terraform:format
-
-# Terraform設定の検証
-npm run terraform:validate
 ```

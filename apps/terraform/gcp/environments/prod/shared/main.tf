@@ -42,4 +42,14 @@ resource "google_project_service" "certificate_manager_api" {
 
   disable_dependent_services = true
   disable_on_destroy         = false
-} 
+}
+
+# Enable IAM Service Account Credentials API
+# Workload Identity Federationを使用するために必要なAPIを有効化
+# GitHub ActionsがService Accountの一時的な認証情報を取得するために使用される
+resource "google_project_service" "iam_credentials_api" {
+  service = "iamcredentials.googleapis.com"
+
+  disable_dependent_services = true
+  disable_on_destroy         = false
+}

@@ -226,6 +226,15 @@ resource "google_storage_bucket_iam_member" "github_actions_storage_object_admin
   member = "serviceAccount:${google_service_account.github_actions_deployer.email}"
 }
 
+# Grant Compute Network Admin role for CDN cache invalidation
+# CDNキャッシュの無効化に必要な権限を付与
+# URLマップへのアクセス権限を含む
+resource "google_project_iam_member" "github_actions_compute_network_admin" {
+  project = var.project_id
+  role    = "roles/compute.networkAdmin"
+  member  = "serviceAccount:${google_service_account.github_actions_deployer.email}"
+}
+
 # ======================================
 # Workload Identity Federation Configuration
 # ======================================
