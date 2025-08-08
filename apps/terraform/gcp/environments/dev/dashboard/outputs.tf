@@ -115,21 +115,21 @@ output "dns_verification_commands" {
 
 output "service_account_email" {
   description = "Service account email for GitHub Actions"
-  value       = google_service_account.github_actions_deployer.email
+  value       = data.terraform_remote_state.shared.outputs.github_actions_service_account_email
 }
 output "github_actions_configuration" {
   description = "Configuration information for GitHub Actions"
   value = {
     workload_identity_provider = data.terraform_remote_state.shared.outputs.workload_identity_provider_name
-    service_account            = google_service_account.github_actions_deployer.email
+    service_account            = data.terraform_remote_state.shared.outputs.github_actions_service_account_email
     project_id                 = var.project_id
     repository                 = var.github_repository
   }
 }
 
-# サービスアカウントキー（削除予定）
+# Service Account Key is managed in shared/iam.tf
 output "service_account_key" {
-  description = "Service account key for GitHub Actions (base64 encoded) - DEPRECATED"
-  value       = google_service_account_key.github_actions_key.private_key
+  description = "Service account key for GitHub Actions (base64 encoded) - managed in shared"
+  value       = data.terraform_remote_state.shared.outputs.github_actions_service_account_key
   sensitive   = true
 }
