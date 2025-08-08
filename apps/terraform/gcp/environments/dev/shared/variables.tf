@@ -29,4 +29,4 @@ variable "labels" {
 variable "github_repository" {
   description = "GitHub repository for Workload Identity Federation (format: owner/repo)"
   type        = string
-} 
+}
