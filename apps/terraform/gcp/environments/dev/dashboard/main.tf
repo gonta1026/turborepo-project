@@ -8,34 +8,20 @@ terraform {
   }
 }
 
-# ======================================
-# Enable Required APIs
-# ======================================
-
-# Enable Certificate Manager API
-# Google Certificate Managerを使用してSSL証明書を自動管理するためのAPIを有効化
-# これにより、ドメインの証明書を自動取得・更新できるようになる
-resource "google_project_service" "certificate_manager_api" {
-  service = "certificatemanager.googleapis.com"
-
-  disable_dependent_services = true
-  disable_on_destroy         = false
-}
-
-# Enable Compute Engine API (if not already enabled)
-# ロードバランサー、グローバルIPアドレス、URLマップなどの作成に必要なCompute Engine APIを有効化
-# 静的IPアドレスの取得やHTTPS/HTTPプロキシの作成に使用される
-resource "google_project_service" "compute_api" {
-  service = "compute.googleapis.com"
-
-  disable_dependent_services = true
-  disable_on_destroy         = false
-}
-
 provider "google" {
   project = var.project_id
   region  = var.region
 }
+
+# Remote state reference to shared resources
+data "terraform_remote_state" "shared" {
+  backend = "gcs"
+  config = {
+    bucket = "terraform-gcp-466623-terraform-state"
+    prefix = "dev/shared"
+  }
+}
+
 
 # ======================================
 # Cloud Storage for Static Website
@@ -191,7 +177,9 @@ resource "google_certificate_manager_certificate" "website_cert" {
     },
   )
 
-  depends_on = [google_project_service.certificate_manager_api]
+  # Certificate Manager API有効化後に作成 (shared/apis.tf)
+  # 依存: google_project_service.certificate_manager_api
+  depends_on = [data.terraform_remote_state.shared]
 }
 
 # Certificate Map for Certificate Manager
@@ -209,7 +197,9 @@ resource "google_certificate_manager_certificate_map" "website_cert_map" {
     },
   )
 
-  depends_on = [google_project_service.certificate_manager_api]
+  # Certificate Manager API有効化後に作成 (shared/apis.tf)
+  # 依存: google_project_service.certificate_manager_api
+  depends_on = [data.terraform_remote_state.shared]
 }
 
 # Certificate Map Entry
@@ -264,14 +254,6 @@ resource "google_project_iam_member" "github_actions_cache_invalidator" {
   member  = "serviceAccount:${google_service_account.github_actions_deployer.email}"
 }
 
-# Remote state reference to shared resources
-data "terraform_remote_state" "shared" {
-  backend = "gcs"
-  config = {
-    bucket = "terraform-gcp-466623-terraform-state"
-    prefix = "dev/shared"
-  }
-}
 
 # Workload Identity User role binding
 # GitHub ActionsがサービスアカウントとしてGCPリソースにアクセスできるよう権限を付与
