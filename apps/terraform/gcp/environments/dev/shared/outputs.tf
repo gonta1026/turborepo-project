@@ -12,6 +12,11 @@ output "region" {
   value       = var.region
 }
 
+output "dev_team_group" {
+  description = "Development team Google group email"
+  value       = var.dev_team_group
+}
+
 # Workload Identity Federation
 output "workload_identity_pool_id" {
   description = "Workload Identity Pool ID"
@@ -49,5 +54,68 @@ output "github_actions_service_account_key" {
   description = "GitHub Actions Service Account Key (base64 encoded)"
   value       = google_service_account_key.github_actions_key.private_key
   sensitive   = true
+}
+
+# ======================================
+# Network Infrastructure Outputs
+# ======================================
+
+# VPC Network Outputs
+output "vpc_network_id" {
+  description = "Main VPC network ID"
+  value       = google_compute_network.main_vpc.id
+}
+
+output "vpc_network_name" {
+  description = "Main VPC network name"
+  value       = google_compute_network.main_vpc.name
+}
+
+# Subnet Outputs
+output "public_subnet_id" {
+  description = "Public subnet ID"
+  value       = google_compute_subnetwork.public_subnet.id
+}
+
+output "private_subnet_id" {
+  description = "Private subnet ID"
+  value       = google_compute_subnetwork.private_subnet.id
+}
+
+output "management_subnet_id" {
+  description = "Management subnet ID"
+  value       = google_compute_subnetwork.management_subnet.id
+}
+
+# Private Service Connection
+output "private_ip_alloc_id" {
+  description = "Private IP allocation ID for service networking"
+  value       = google_compute_global_address.private_ip_alloc.id
+}
+
+# Cloud NAT
+output "cloud_router_id" {
+  description = "Cloud Router ID"
+  value       = google_compute_router.main_router.id
+}
+
+output "cloud_nat_id" {
+  description = "Cloud NAT ID"
+  value       = google_compute_router_nat.main_nat.id
+}
+
+# ======================================
+# Static IP Addresses
+# ======================================
+
+# API Static IP
+output "api_static_ip_address" {
+  description = "API Load Balancer static IP address"
+  value       = google_compute_global_address.api_ip.address
+}
+
+output "api_static_ip_id" {
+  description = "API Load Balancer static IP resource ID"
+  value       = google_compute_global_address.api_ip.id
 }
 

@@ -47,3 +47,43 @@ resource "google_project_iam_binding" "dev_team_editor" {
     "group:${var.dev_team_group}",
   ]
 }
+
+# ======================================
+# Cloud SQL IAM Access
+# ======================================
+
+# Cloud SQL Client Role for developers
+# Cloud SQL Proxyでの接続に必要な権限
+resource "google_project_iam_member" "dev_team_sql_client" {
+  project = var.project_id
+  role    = "roles/cloudsql.client"
+  member  = "group:${var.dev_team_group}"
+}
+
+# Cloud SQL Instance User Role for developers
+# Cloud SQLインスタンスへの接続権限
+resource "google_project_iam_member" "dev_team_sql_instance_user" {
+  project = var.project_id
+  role    = "roles/cloudsql.instanceUser"
+  member  = "group:${var.dev_team_group}"
+}
+
+# ======================================
+# GitHub Actions Service Account IAM
+# ======================================
+
+# GitHub ActionsサービスアカウントにCloud SQL Client権限を付与
+# Cloud SQL Proxyでの接続とインスタンス情報取得に必要
+resource "google_project_iam_member" "github_actions_sql_client" {
+  project = var.project_id
+  role    = "roles/cloudsql.client"
+  member  = "serviceAccount:${google_service_account.github_actions_deployer.email}"
+}
+
+# GitHub ActionsサービスアカウントにCloud SQL Instance User権限を付与
+# Cloud SQLインスタンスへの接続権限
+resource "google_project_iam_member" "github_actions_sql_instance_user" {
+  project = var.project_id
+  role    = "roles/cloudsql.instanceUser"
+  member  = "serviceAccount:${google_service_account.github_actions_deployer.email}"
+}
