@@ -8,4 +8,4 @@ resource "google_project_iam_binding" "dev_team_editor" {
   members = [
     "group:${var.dev_team_group}",
   ]
-} 
+}
