@@ -156,6 +156,27 @@ resource "google_compute_firewall" "allow_ssh_debug" {
   target_tags = ["ssh-debug"]
 }
 
+# Allow SSH through IAP
+# Identity-Aware Proxy経由でのSSH接続を許可
+# プライベートインスタンスへの安全なSSHアクセス用
+resource "google_compute_firewall" "allow_ssh_iap" {
+  name        = "allow-ssh-iap"
+  network     = google_compute_network.main_vpc.name
+  description = "Allow SSH through IAP for private instances"
+  direction   = "INGRESS"
+  priority    = 1000
+
+  allow {
+    protocol = "tcp"
+    ports    = ["22"]
+  }
+
+  # IAP の IP レンジ
+  source_ranges = ["35.235.240.0/20"]
+
+  target_tags = ["sql-test"]
+}
+
 # ======================================
 # Egress Rules
 # ======================================

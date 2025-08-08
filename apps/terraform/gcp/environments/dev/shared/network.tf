@@ -85,7 +85,8 @@ resource "google_compute_global_address" "private_ip_alloc" {
 
 # Private connection to Google services
 resource "google_service_networking_connection" "private_vpc_connection" {
-  network                 = google_compute_network.main_vpc.id
+  network = google_compute_network.main_vpc.id
+  # @MEMO 現在権限としては汎用的な「servicenetworking.googleapis.com」の大きなものをつけている。今後権限を狭めることを検討
   service                 = "servicenetworking.googleapis.com"
   reserved_peering_ranges = [google_compute_global_address.private_ip_alloc.name]
 

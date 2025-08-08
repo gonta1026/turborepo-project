@@ -12,6 +12,11 @@ output "region" {
   value       = var.region
 }
 
+output "dev_team_group" {
+  description = "Development team Google group email"
+  value       = var.dev_team_group
+}
+
 # Workload Identity Federation
 output "workload_identity_pool_id" {
   description = "Workload Identity Pool ID"
