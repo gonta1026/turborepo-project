@@ -217,14 +217,7 @@ resource "google_certificate_manager_certificate_map_entry" "website_cert_map_en
 # IAM Service Account for GitHub Actions Deployment
 # ======================================
 
-# Service Account for GitHub Actions to deploy to Cloud Storage
-# GitHub ActionsからCloud Storageへのデプロイを行うためのサービスアカウント
-# 必要最小限の権限のみを付与して、セキュリティを確保
-resource "google_service_account" "github_actions_deployer" {
-  account_id   = "github-actions-dashboard"
-  display_name = "GitHub Actions Dashboard Deployer"
-  description  = "Service account for GitHub Actions to deploy dashboard to Cloud Storage"
-}
+# Service Account for GitHub Actions is defined in shared/iam.tf
 
 # Grant Storage Object Admin role on the specific bucket
 # バケット内のオブジェクト（ファイル）の作成・更新・削除権限のみを付与
@@ -232,26 +225,17 @@ resource "google_service_account" "github_actions_deployer" {
 resource "google_storage_bucket_iam_member" "github_actions_storage_object_admin" {
   bucket = google_storage_bucket.website_bucket.name
   role   = "roles/storage.objectAdmin"
-  member = "serviceAccount:${google_service_account.github_actions_deployer.email}"
+  member = "serviceAccount:${data.terraform_remote_state.shared.outputs.github_actions_service_account_email}"
 }
 
 # Grant permission to invalidate CDN cache
-# CDNキャッシュの無効化に必要な最小限の権限を定義するカスタムロール
-resource "google_project_iam_custom_role" "cache_invalidator" {
-  role_id     = "cacheInvalidator"
-  title       = "Cache Invalidator"
-  description = "Custom role for CDN cache invalidation with minimal permissions"
-  permissions = [
-    "compute.urlMaps.invalidateCache",
-    "compute.urlMaps.get"
-  ]
-}
+# CDNキャッシュの無効化に必要な最小限の権限を定義するカスタムロールは shared/iam.tf で定義
 
 # カスタムロールをサービスアカウントに付与
 resource "google_project_iam_member" "github_actions_cache_invalidator" {
   project = var.project_id
-  role    = google_project_iam_custom_role.cache_invalidator.name
-  member  = "serviceAccount:${google_service_account.github_actions_deployer.email}"
+  role    = data.terraform_remote_state.shared.outputs.cache_invalidator_role_name
+  member  = "serviceAccount:${data.terraform_remote_state.shared.outputs.github_actions_service_account_email}"
 }
 
 
@@ -259,20 +243,12 @@ resource "google_project_iam_member" "github_actions_cache_invalidator" {
 # GitHub ActionsがサービスアカウントとしてGCPリソースにアクセスできるよう権限を付与
 # 特定のリポジトリからのリクエストのみがサービスアカウントを使用できるよう制限
 resource "google_service_account_iam_member" "github_actions_workload_identity_user" {
-  service_account_id = google_service_account.github_actions_deployer.name
+  service_account_id = data.terraform_remote_state.shared.outputs.github_actions_service_account_name
   role               = "roles/iam.workloadIdentityUser"
   member             = "principalSet://iam.googleapis.com/${data.terraform_remote_state.shared.outputs.workload_identity_pool_name}/attribute.repository/${var.github_repository}"
 }
 
-# Create Service Account Key (一時的に残す)
-# GitHub Actionsで使用するサービスアカウントキーを作成
-# このキーはGitHub Secretsに登録して使用する
-# NOTE: サービスアカウントキーの使用は非推奨です
-# セキュリティ向上のため、Workload Identity Federationの使用を強く推奨をするが「組織」の設定が必要なため、学習用の目的でサービスアカウントを利用する
-resource "google_service_account_key" "github_actions_key" {
-  service_account_id = google_service_account.github_actions_deployer.name
-  key_algorithm      = "KEY_ALG_RSA_2048"
-}
+# Service Account Key is managed in shared/iam.tf
 
 # HTTPS Target Proxy
 # HTTPS（暗号化）接続を処理するためのプロキシを作成
