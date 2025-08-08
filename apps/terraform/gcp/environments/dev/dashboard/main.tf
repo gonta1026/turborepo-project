@@ -236,21 +236,12 @@ resource "google_storage_bucket_iam_member" "github_actions_storage_object_admin
 }
 
 # Grant permission to invalidate CDN cache
-# CDNキャッシュの無効化に必要な最小限の権限を定義するカスタムロール
-resource "google_project_iam_custom_role" "cache_invalidator" {
-  role_id     = "cacheInvalidator"
-  title       = "Cache Invalidator"
-  description = "Custom role for CDN cache invalidation with minimal permissions"
-  permissions = [
-    "compute.urlMaps.invalidateCache",
-    "compute.urlMaps.get"
-  ]
-}
+# CDNキャッシュの無効化に必要な最小限の権限を定義するカスタムロールは shared/iam.tf で定義
 
 # カスタムロールをサービスアカウントに付与
 resource "google_project_iam_member" "github_actions_cache_invalidator" {
   project = var.project_id
-  role    = google_project_iam_custom_role.cache_invalidator.name
+  role    = data.terraform_remote_state.shared.outputs.cache_invalidator_role_name
   member  = "serviceAccount:${google_service_account.github_actions_deployer.email}"
 }
 

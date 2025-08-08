@@ -27,3 +27,9 @@ output "workload_identity_provider_name" {
   description = "Workload Identity Provider Name"
   value       = google_iam_workload_identity_pool_provider.github_actions_provider.name
 }
+
+# IAM Custom Roles
+output "cache_invalidator_role_name" {
+  description = "Cache invalidator custom role name"
+  value       = google_project_iam_custom_role.cache_invalidator.name
+}
