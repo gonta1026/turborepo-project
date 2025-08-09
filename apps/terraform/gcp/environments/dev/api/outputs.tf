@@ -47,10 +47,20 @@ output "api_service_account_email" {
 # DNS Records Required (for manual DNS setup)
 output "api_dns_records_required" {
   description = "DNS records that need to be configured manually"
-  value = var.api_domain_name != "" ? {
+  value = {
     domain = var.api_domain_name
     type   = "CNAME"
-    value  = "ghs.googlehosted.com."
-    ttl    = 300
-  } : null
+    value  = "ghs.googlehosted.com." # 要らなそう
+    ttl    = 300                     # 要らなそう
+  }
+}
+
+output "certificate_status" {
+  description = "SSL certificate status and information"
+  value = {
+    certificate_id = google_certificate_manager_certificate.api_cert.id
+    status_message = "Certificate configured - check GCP Console for detailed status"
+    console_url    = "https://console.cloud.google.com/security/ccm/list/certificates?project=${var.project_id}"
+    domain         = var.api_domain_name
+  }
 }

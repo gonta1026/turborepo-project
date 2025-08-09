@@ -132,4 +132,3 @@ output "vpc_connector_name" {
   description = "VPC Access Connector name"
   value       = google_vpc_access_connector.main_connector.name
 }
-
