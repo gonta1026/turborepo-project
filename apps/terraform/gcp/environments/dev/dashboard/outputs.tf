@@ -70,11 +70,6 @@ output "certificate_status" {
   }
 }
 
-output "certificate_map_id" {
-  description = "Certificate Map ID"
-  value       = google_certificate_manager_certificate_map.website_cert_map.id
-}
-
 # ======================================
 # DNS Configuration Information
 # ======================================

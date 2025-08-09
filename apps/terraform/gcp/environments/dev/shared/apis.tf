@@ -61,3 +61,23 @@ resource "google_project_service" "iap_api" {
   disable_dependent_services = true
   disable_on_destroy         = false
 }
+
+# Enable Serverless VPC Access API
+# Cloud RunサービスがVPCネットワーク内のリソースにアクセスするためのAPIを有効化
+# VPCアクセスコネクターの作成・管理に使用される
+resource "google_project_service" "vpcaccess_api" {
+  service = "vpcaccess.googleapis.com"
+
+  disable_dependent_services = true
+  disable_on_destroy         = false
+}
+
+# Enable Cloud Run Admin API
+# Cloud Runサービスの作成・管理・設定に必要なAPIを有効化
+# Cloud Runサービスのデプロイ、設定変更、管理に使用される
+resource "google_project_service" "run_api" {
+  service = "run.googleapis.com"
+
+  disable_dependent_services = true
+  disable_on_destroy         = false
+}

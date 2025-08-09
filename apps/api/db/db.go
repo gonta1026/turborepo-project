@@ -5,9 +5,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
@@ -29,34 +26,14 @@ func InitDB(cfg *config.Config) error {
 
 	log.Println("Successfully connected to database")
 
-	// Run migrations
-	if err = runMigrations(cfg); err != nil {
-		return fmt.Errorf("failed to run migrations: %w", err)
-	}
+	// NOTE: Migrations are now handled by CI/CD pipeline (GitHub Actions)
+	// Manual migration command: migrate -path ./migrations -database $DATABASE_URL up
 
 	return nil
 }
 
-func runMigrations(cfg *config.Config) error {
-	driver, err := postgres.WithInstance(DB.DB, &postgres.Config{})
-	if err != nil {
-		return fmt.Errorf("could not create migration driver: %w", err)
-	}
-
-	m, err := migrate.NewWithDatabaseInstance(
-		"file://migrations",
-		"postgres", driver)
-	if err != nil {
-		return fmt.Errorf("could not create migrate instance: %w", err)
-	}
-
-	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-		return fmt.Errorf("could not run migrations: %w", err)
-	}
-
-	log.Println("Migrations completed successfully")
-	return nil
-}
+// runMigrations function removed - migrations now handled by CI/CD pipeline
+// For manual migration: migrate -path ./migrations -database $DATABASE_URL up
 
 func CloseDB() {
 	if DB != nil {

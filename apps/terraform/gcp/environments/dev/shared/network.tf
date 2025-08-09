@@ -154,3 +154,29 @@ resource "google_compute_global_address" "api_ip" {
   address_type = "EXTERNAL"
   # IPアドレスは自動的に割り当てられます
 }
+
+# ======================================
+# Serverless VPC Access Connector
+# ======================================
+# Cloud RunサービスがVPCネットワーク内のリソース（Cloud SQL等）にアクセスするためのコネクター
+# Cloud Runはサーバーレスのため、デフォルトではVPCに接続されていない
+
+# VPC Access Connector for Cloud Run
+resource "google_vpc_access_connector" "main_connector" {
+  name          = "main-connector"
+  ip_cidr_range = "10.1.4.0/28"  # /28で16個のIPアドレスを使用
+  network       = google_compute_network.main_vpc.name
+  region        = var.region
+  
+  # コネクターの最小・最大インスタンス数
+  min_instances = 2
+  max_instances = 10
+  
+  # マシンタイプ（小規模構成）
+  machine_type = "e2-micro"
+  
+  # スループット設定（現在のリソースに合わせる）
+  max_throughput = 1000
+
+  depends_on = [google_compute_network.main_vpc]
+}

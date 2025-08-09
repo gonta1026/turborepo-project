@@ -8,6 +8,7 @@ import (
 	"api/usecase"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 )
@@ -116,10 +117,13 @@ func main() {
 		}
 	}
 
-	// サーバー起動
-	port := ":8080"
+	// サーバー起動 - Cloud Run対応でPORT環境変数を使用
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080" // ローカル開発時のデフォルト
+	}
 	log.Printf("Starting server on port %s", port)
-	if err := r.Run(port); err != nil {
+	if err := r.Run(":" + port); err != nil {
 		log.Fatal("Failed to start server: ", err)
 	}
 }

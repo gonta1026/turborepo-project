@@ -182,25 +182,6 @@ resource "google_certificate_manager_certificate" "website_cert" {
   depends_on = [data.terraform_remote_state.shared]
 }
 
-# Certificate Map for Certificate Manager
-# 複数の証明書とドメインの関連付けを管理するためのマップを作成
-# ロードバランサーが適切な証明書を選択できるようにする仕組み
-# 将来的に複数ドメインや証明書を使用する場合の拡張性を提供
-resource "google_certificate_manager_certificate_map" "website_cert_map" {
-  name        = "dashboard-cert-map"
-  description = "Certificate map for dashboard HTTPS"
-
-  labels = merge(
-    var.labels,
-    {
-      purpose = "certificate-map"
-    },
-  )
-
-  # Certificate Manager API有効化後に作成 (shared/apis.tf)
-  # 依存: google_project_service.certificate_manager_api
-  depends_on = [data.terraform_remote_state.shared]
-}
 
 # Certificate Map Entry
 # 特定のドメイン名と証明書の具体的な関連付けを定義
@@ -208,7 +189,7 @@ resource "google_certificate_manager_certificate_map" "website_cert_map" {
 # ホスト名ベースの証明書選択を実現する重要な設定
 resource "google_certificate_manager_certificate_map_entry" "website_cert_map_entry" {
   name         = "dashboard-cert-map-entry"
-  map          = google_certificate_manager_certificate_map.website_cert_map.name
+  map          = data.terraform_remote_state.shared.outputs.shared_certificate_map.name
   certificates = [google_certificate_manager_certificate.website_cert.id]
   hostname     = var.domain_name
 }
@@ -258,7 +239,7 @@ resource "google_compute_target_https_proxy" "website_https_proxy" {
   name    = "dashboard-https-proxy"
   url_map = google_compute_url_map.website_url_map.id
 
-  certificate_map = "//certificatemanager.googleapis.com/${google_certificate_manager_certificate_map.website_cert_map.id}"
+  certificate_map = "//certificatemanager.googleapis.com/${data.terraform_remote_state.shared.outputs.shared_certificate_map.id}"
 }
 
 # HTTPS Forwarding Rule

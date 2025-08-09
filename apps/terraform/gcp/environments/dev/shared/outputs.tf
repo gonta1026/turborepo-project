@@ -119,3 +119,25 @@ output "api_static_ip_id" {
   value       = google_compute_global_address.api_ip.id
 }
 
+# ======================================
+# Serverless VPC Access Connector
+# ======================================
+
+output "vpc_connector_id" {
+  description = "VPC Access Connector ID for Cloud Run services"
+  value       = google_vpc_access_connector.main_connector.id
+}
+
+output "vpc_connector_name" {
+  description = "VPC Access Connector name"
+  value       = google_vpc_access_connector.main_connector.name
+}
+
+# Certificate Map
+output "shared_certificate_map" {
+  description = "Shared Certificate Map name"
+  value = {
+    name = google_certificate_manager_certificate_map.shared_cert_map.name
+    id   = google_certificate_manager_certificate_map.shared_cert_map.id
+  }
+}

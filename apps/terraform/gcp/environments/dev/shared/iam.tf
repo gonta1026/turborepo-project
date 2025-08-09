@@ -1,6 +1,13 @@
 # IAM設定ファイル - dev環境全体用（プロジェクトレベル）
 
 # ======================================
+# Data Sources
+# ======================================
+
+# 現在のプロジェクト情報を取得
+data "google_project" "current" {}
+
+# ======================================
 # Shared IAM Custom Roles
 # ======================================
 
@@ -45,6 +52,8 @@ resource "google_project_iam_binding" "dev_team_editor" {
 
   members = [
     "group:${var.dev_team_group}",
+    # Google APIs Service Agent - VPCコネクター作成に必要
+    "serviceAccount:${data.google_project.current.number}@cloudservices.gserviceaccount.com",
   ]
 }
 
