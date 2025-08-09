@@ -119,3 +119,17 @@ output "api_static_ip_id" {
   value       = google_compute_global_address.api_ip.id
 }
 
+# ======================================
+# Serverless VPC Access Connector
+# ======================================
+
+output "vpc_connector_id" {
+  description = "VPC Access Connector ID for Cloud Run services"
+  value       = google_vpc_access_connector.main_connector.id
+}
+
+output "vpc_connector_name" {
+  description = "VPC Access Connector name"
+  value       = google_vpc_access_connector.main_connector.name
+}
+
