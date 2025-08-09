@@ -132,3 +132,12 @@ output "vpc_connector_name" {
   description = "VPC Access Connector name"
   value       = google_vpc_access_connector.main_connector.name
 }
+
+# Certificate Map
+output "shared_certificate_map" {
+  description = "Shared Certificate Map name"
+  value = {
+    name = google_certificate_manager_certificate_map.shared_cert_map.name
+    id   = google_certificate_manager_certificate_map.shared_cert_map.id
+  }
+}

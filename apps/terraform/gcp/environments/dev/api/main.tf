@@ -43,10 +43,10 @@ resource "google_certificate_manager_certificate" "api_cert" {
   depends_on = [data.terraform_remote_state.shared]
 }
 
-# 既存のCertificate MapにAPI用エントリーを追加
+# 共通Certificate MapにAPI用エントリーを追加
 resource "google_certificate_manager_certificate_map_entry" "api_cert_map_entry" {
   name         = "api-cert-map-entry"
-  map          = "dashboard-cert-map" # 既存のmapを使用
+  map          = data.terraform_remote_state.shared.outputs.shared_certificate_map.name
   certificates = [google_certificate_manager_certificate.api_cert.id]
   hostname     = "dev.api.my-learn-iac-sample.site"
 }
