@@ -28,13 +28,29 @@ output "database_user" {
   sensitive   = true
 }
 
+# Cloud Run Service Information
+output "api_service_name" {
+  description = "Cloud Run API service name"
+  value       = google_cloud_run_v2_service.api_service.name
+}
+
+output "api_service_url" {
+  description = "Cloud Run API service URL"
+  value       = google_cloud_run_v2_service.api_service.uri
+}
+
+output "api_service_account_email" {
+  description = "Cloud Run service account email"
+  value       = google_service_account.api_cloud_run_sa.email
+}
+
 # DNS Records Required (for manual DNS setup)
 output "api_dns_records_required" {
   description = "DNS records that need to be configured manually"
-  value = {
+  value = var.api_domain_name != "" ? {
     domain = var.api_domain_name
-    type   = "A"
-    value  = data.terraform_remote_state.shared.outputs.api_static_ip_address
+    type   = "CNAME"
+    value  = "ghs.googlehosted.com."
     ttl    = 300
-  }
+  } : null
 }
