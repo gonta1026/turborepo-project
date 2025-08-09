@@ -64,3 +64,29 @@ output "certificate_status" {
     domain         = var.api_domain_name
   }
 }
+
+# Load Balancer Information
+output "load_balancer_ip" {
+  description = "Static IP address for the API load balancer"
+  value       = data.terraform_remote_state.shared.outputs.api_static_ip_address
+}
+
+output "https_load_balancer_url" {
+  description = "HTTPS URL for the API with custom domain"
+  value       = "https://${var.api_domain_name}"
+}
+
+output "load_balancer_url" {
+  description = "HTTP URL for the API load balancer (redirects to HTTPS)"
+  value       = "http://${data.terraform_remote_state.shared.outputs.api_static_ip_address}"
+}
+
+output "backend_service_name" {
+  description = "Backend service name for the API load balancer"
+  value       = google_compute_backend_service.api_backend_service.name
+}
+
+output "neg_name" {
+  description = "Network Endpoint Group name for Cloud Run service"
+  value       = google_compute_region_network_endpoint_group.api_neg.name
+}
