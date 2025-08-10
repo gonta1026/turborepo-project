@@ -46,6 +46,32 @@ func TestTodoUsecase_CreateTodo(t *testing.T) {
 			wantErr: nil,
 		},
 		{
+			name: "Valid todo with priority",
+			req: &models.CreateTodoRequest{
+				Title:       "High Priority Todo",
+				Description: "Important task",
+				Priority:    "high",
+			},
+			wantErr: nil,
+		},
+		{
+			name: "Todo with default priority",
+			req: &models.CreateTodoRequest{
+				Title:       "Default Priority Todo",
+				Description: "Normal task",
+			},
+			wantErr: nil,
+		},
+		{
+			name: "Invalid priority should fail",
+			req: &models.CreateTodoRequest{
+				Title:       "Invalid Priority",
+				Description: "Test Description",
+				Priority:    "invalid",
+			},
+			wantErr: usecase.ErrInvalidInput,
+		},
+		{
 			name: "Empty title should fail",
 			req: &models.CreateTodoRequest{
 				Title:       "",
@@ -71,6 +97,13 @@ func TestTodoUsecase_CreateTodo(t *testing.T) {
 				assert.Equal(t, tt.req.Title, todo.Title)
 				assert.Equal(t, tt.req.Description, todo.Description)
 				assert.False(t, todo.Completed)
+				
+				// Check priority
+				if tt.req.Priority != "" {
+					assert.Equal(t, tt.req.Priority, todo.Priority)
+				} else {
+					assert.Equal(t, "medium", todo.Priority) // Default priority
+				}
 			}
 		})
 	}
@@ -217,12 +250,29 @@ func TestTodoUsecase_UpdateTodo(t *testing.T) {
 			wantErr: nil,
 		},
 		{
+			name: "Update priority only",
+			id:   createdTodo.ID,
+			req: &models.UpdateTodoRequest{
+				Priority: "high",
+			},
+			wantErr: nil,
+		},
+		{
+			name: "Invalid priority should fail",
+			id:   createdTodo.ID,
+			req: &models.UpdateTodoRequest{
+				Priority: "invalid",
+			},
+			wantErr: usecase.ErrInvalidInput,
+		},
+		{
 			name: "Update all fields",
 			id:   createdTodo.ID,
 			req: &models.UpdateTodoRequest{
 				Title:       "Fully Updated Title",
 				Description: "Fully Updated Description",
 				Completed:   &completedFalse,
+				Priority:    "low",
 			},
 			wantErr: nil,
 		},
@@ -263,6 +313,9 @@ func TestTodoUsecase_UpdateTodo(t *testing.T) {
 				}
 				if tt.req.Completed != nil {
 					assert.Equal(t, *tt.req.Completed, todo.Completed)
+				}
+				if tt.req.Priority != "" {
+					assert.Equal(t, tt.req.Priority, todo.Priority)
 				}
 			}
 		})
@@ -317,4 +370,48 @@ func TestTodoUsecase_DeleteTodo(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestTodoUsecase_PriorityFeature(t *testing.T) {
+	todoUsecase, cleanup := setupTest(t)
+	defer cleanup()
+
+	// Test creating todos with different priorities
+	priorities := []string{"low", "medium", "high"}
+	createdTodos := make([]*models.Todo, len(priorities))
+
+	for i, priority := range priorities {
+		todo, err := todoUsecase.CreateTodo(&models.CreateTodoRequest{
+			Title:       fmt.Sprintf("Todo with %s priority", priority),
+			Description: fmt.Sprintf("Testing %s priority", priority),
+			Priority:    priority,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, priority, todo.Priority)
+		createdTodos[i] = todo
+	}
+
+	// Test updating priority
+	updatedTodo, err := todoUsecase.UpdateTodo(createdTodos[0].ID, &models.UpdateTodoRequest{
+		Priority: "high",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "high", updatedTodo.Priority)
+	assert.Equal(t, createdTodos[0].Title, updatedTodo.Title) // Other fields should remain unchanged
+
+	// Test GetAll returns todos with priority
+	allTodos, err := todoUsecase.GetAllTodos()
+	require.NoError(t, err)
+	assert.Len(t, allTodos, len(priorities))
+
+	// Verify all todos have priority field
+	for _, todo := range allTodos {
+		assert.NotEmpty(t, todo.Priority)
+		assert.Contains(t, []string{"low", "medium", "high"}, todo.Priority)
+	}
+
+	// Test GetByID returns todo with priority
+	retrievedTodo, err := todoUsecase.GetTodoByID(createdTodos[1].ID)
+	require.NoError(t, err)
+	assert.Equal(t, "medium", retrievedTodo.Priority)
 }
