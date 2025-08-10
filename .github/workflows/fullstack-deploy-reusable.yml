@@ -57,7 +57,7 @@ jobs:
         image: postgres:17-alpine
         env:
           POSTGRES_USER: apiuser
-          POSTGRES_PASSWORD: ${{ secrets.db-password }}
+          POSTGRES_PASSWORD: test_password_123
           POSTGRES_DB: apidb
         ports:
           - 9000:5432
@@ -102,7 +102,7 @@ jobs:
           DB_HOST: 127.0.0.1
           DB_PORT: 9000
           DB_USER: apiuser
-          DB_PASSWORD: ${{ secrets.db-password }}
+          DB_PASSWORD: test_password_123
           DB_NAME: apidb
           
       - name: Run Database Migrations (Test DB)
@@ -113,7 +113,7 @@ jobs:
           DB_HOST: 127.0.0.1
           DB_PORT: 9000
           DB_USER: apiuser
-          DB_PASSWORD: ${{ secrets.db-password }}
+          DB_PASSWORD: test_password_123
           DB_NAME: apidb
           
       - name: Set build info
