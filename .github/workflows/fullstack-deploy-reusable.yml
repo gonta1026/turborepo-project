@@ -1,0 +1,286 @@
+name: Reusable Full Stack Deploy
+on:
+  workflow_call:
+    inputs:
+      ENVIRONMENT:
+        required: true
+        type: string
+        description: "Target environment (dev)"
+      PROJECT_ID:
+        required: true
+        type: string
+        description: "GCP Project ID"
+      REGION:
+        required: true
+        type: string
+        description: "GCP Region"
+      VPC_CONNECTOR_NAME:
+        required: true
+        type: string
+        description: "VPC Connector name"
+      API_SERVICE_NAME:
+        required: true
+        type: string
+        description: "Cloud Run API service name"
+      DASHBOARD_SERVICE_NAME:
+        required: true
+        type: string
+        description: "Cloud Run Dashboard service name"
+      API_BASE_URL:
+        required: true
+        type: string
+        description: "API base URL"
+      DASHBOARD_BASE_URL:
+        required: true
+        type: string
+        description: "Dashboard base URL"
+    secrets:
+      db-password:
+        required: true
+      wif-provider:
+        required: true
+      service-account:
+        required: true
+      gcs-bucket-name:
+        required: true
+      cdn-url-map-name:
+        required: true
+
+jobs:
+  # 並列ビルド: API + Dashboard
+  build-api:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.ENVIRONMENT }}
+
+    outputs:
+      api-image-tag: ${{ steps.build-info.outputs.image-tag }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/api/go.mod
+          cache: false
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.wif-provider }}
+          service_account: ${{ secrets.service-account }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ inputs.REGION }}-docker.pkg.dev
+
+      - name: Set build info
+        id: build-info
+        run: |
+          echo "image-tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+
+      - name: Build API Docker Image
+        run: |
+          cd apps/api
+          docker build \
+            --cache-from=${{ inputs.REGION }}-docker.pkg.dev/${{ inputs.PROJECT_ID }}/api-service/api:latest \
+            --tag ${{ inputs.REGION }}-docker.pkg.dev/${{ inputs.PROJECT_ID }}/api-service/api:${{ github.sha }} \
+            --tag ${{ inputs.REGION }}-docker.pkg.dev/${{ inputs.PROJECT_ID }}/api-service/api:latest \
+            .
+
+      - name: Push API Docker Image
+        run: |
+          docker push ${{ inputs.REGION }}-docker.pkg.dev/${{ inputs.PROJECT_ID }}/api-service/api:${{ github.sha }}
+          docker push ${{ inputs.REGION }}-docker.pkg.dev/${{ inputs.PROJECT_ID }}/api-service/api:latest
+
+  build-dashboard:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.ENVIRONMENT }}
+
+    outputs:
+      dashboard-image-tag: ${{ steps.build-info.outputs.image-tag }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.10.0"
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.wif-provider }}
+          service_account: ${{ secrets.service-account }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ inputs.REGION }}-docker.pkg.dev
+
+      - name: Install Dashboard Dependencies
+        run: |
+          # クリーンインストールで依存関係の問題を回避
+          rm -rf node_modules package-lock.json
+          npm install
+
+      # テストは呼び出し元で実行済み
+
+      - name: Build Dashboard
+        run: |
+          # API URLを環境変数で設定
+          export VITE_API_URL=${{ inputs.API_BASE_URL }}
+          npm run build --workspace=dashboard
+
+      - name: Set build info
+        id: build-info
+        run: |
+          echo "image-tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+
+      - name: Deploy Dashboard to Cloud Storage
+        run: |
+          # Cloud Storageにデプロイ（既存方式を活用）
+          gsutil -m rsync -r -d ./apps/dashboard/dist gs://${{ secrets.gcs-bucket-name }}
+          gsutil -m setmeta -h "Cache-Control:public, max-age=3600" -r gs://${{ secrets.gcs-bucket-name }}/**
+
+      - name: Invalidate CDN cache
+        run: |
+          gcloud compute url-maps invalidate-cdn-cache ${{ secrets.cdn-url-map-name }} \
+            --path "/*" \
+            --global
+
+  # 統合デプロイ: API → Dashboard 順序制御
+  deploy-integrated:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.ENVIRONMENT }}
+    needs: [build-api, build-dashboard] # 両方完了必須
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.wif-provider }}
+          service_account: ${{ secrets.service-account }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      # Step 1: API No-Traffic Deploy
+      - name: Deploy API (No Traffic)
+        run: |
+          gcloud run deploy ${{ inputs.API_SERVICE_NAME }} \
+            --image=${{ inputs.region }}-docker.pkg.dev/${{ inputs.project-id }}/api-service/api:${{ needs.build-api.outputs.api-image-tag }} \
+            --region=${{ inputs.REGION }} \
+            --no-traffic \
+            --vpc-connector=${{ inputs.VPC_CONNECTOR_NAME }} \
+            --set-env-vars="DB_HOST=${{ inputs.PROJECT_ID }}:${{ inputs.REGION }}:api-postgres,DB_USER=apiuser,DB_NAME=apidb,DB_PORT=5432" \
+            --set-secrets="DB_PASSWORD=api-db-password:latest" \
+            --service-account=${{ secrets.service-account }}
+
+      # Step 2: Dashboard No-Traffic Deploy
+      - name: Deploy Dashboard (No Traffic)
+        run: |
+          gcloud run deploy ${{ inputs.DASHBOARD_SERVICE_NAME }} \
+            --image=${{ inputs.region }}-docker.pkg.dev/${{ inputs.project-id }}/dashboard-service/dashboard:${{ needs.build-dashboard.outputs.dashboard-image-tag }} \
+            --region=${{ inputs.REGION }} \
+            --no-traffic \
+            --set-env-vars="VITE_API_URL=${{ inputs.API_BASE_URL }}" \
+            --service-account=${{ secrets.service-account }}
+
+      # Step 3: Database Migration Check
+      - name: Check Migration Requirements
+        id: migration-check
+        run: |
+          if git diff --name-only HEAD~1 HEAD | grep -q "apps/api/migrations/"; then
+            echo "migration-required=true" >> $GITHUB_OUTPUT
+            echo "🔄 Database migration files detected"
+          else
+            echo "migration-required=false" >> $GITHUB_OUTPUT
+            echo "✅ No migration files changed"
+          fi
+
+      - name: Run Database Migration
+        if: steps.migration-check.outputs.migration-required == 'true'
+        run: |
+          echo "🚀 Running database migrations..."
+          gcloud run jobs create migration-job-${{ github.sha }} \
+            --image=${{ inputs.region }}-docker.pkg.dev/${{ inputs.project-id }}/api-service/api:${{ needs.build-api.outputs.api-image-tag }} \
+            --region=${{ inputs.REGION }} \
+            --vpc-connector=${{ inputs.VPC_CONNECTOR_NAME }} \
+            --set-env-vars="DB_HOST=${{ inputs.PROJECT_ID }}:${{ inputs.REGION }}:api-postgres,DB_USER=apiuser,DB_NAME=apidb,DB_PORT=5432" \
+            --set-secrets="DB_PASSWORD=api-db-password:latest" \
+            --service-account=${{ secrets.service-account }} \
+            --command="make" \
+            --args="migrate-up"
+            
+          gcloud run jobs execute migration-job-${{ github.sha }} --wait --region=${{ inputs.region }}
+          echo "✅ Database migrations completed"
+
+      # Step 4: API Traffic切り替え + ヘルスチェック
+      - name: Switch API Traffic
+        run: |
+          echo "🔄 Switching API traffic to new revision..."
+          gcloud run services update-traffic ${{ inputs.API_SERVICE_NAME }} \
+            --region=${{ inputs.REGION }} \
+            --to-latest
+
+      - name: API Health Check
+        run: |
+          echo "🔍 Checking API health..."
+          for i in {1..30}; do
+            if curl -f "${{ inputs.API_BASE_URL }}/health"; then
+              echo "✅ API is healthy!"
+              break
+            fi
+            echo "⏳ Waiting for API to be ready... ($i/30)"
+            sleep 10
+          done
+
+      # Step 5: Dashboard Traffic切り替え（API正常後）
+      - name: Switch Dashboard Traffic
+        run: |
+          echo "🔄 Switching Dashboard traffic to new revision..."
+          gcloud run services update-traffic ${{ inputs.DASHBOARD_SERVICE_NAME }} \
+            --region=${{ inputs.REGION }} \
+            --to-latest
+
+      # Step 6: 統合ヘルスチェック
+      - name: Dashboard Health Check
+        run: |
+          echo "🔍 Checking Dashboard health..."
+          curl -f "${{ inputs.DASHBOARD_BASE_URL }}"
+
+      - name: Basic Integration Check
+        run: |
+          echo "🔍 Running basic integration check..."
+          # Dashboard画面が正常に表示されることを確認
+          if curl -s "${{ inputs.DASHBOARD_BASE_URL }}" | grep -q "<!doctype html>"; then
+            echo "✅ Dashboard is serving content successfully"
+          else
+            echo "❌ Dashboard integration check failed"
+            exit 1
+          fi
+
+      # Step 7: Deployment Summary
+      - name: Deployment Complete
+        run: |
+          echo "### 🚀 Full Stack Deployment Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ inputs.ENVIRONMENT }}" >> $GITHUB_STEP_SUMMARY
+          echo "**API URL:** ${{ inputs.API_BASE_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Dashboard URL:** ${{ inputs.DASHBOARD_BASE_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "**API Image:** ${{ inputs.REGION }}-docker.pkg.dev/${{ inputs.PROJECT_ID }}/api-service/api:${{ needs.build-api.outputs.api-image-tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Dashboard Image:** ${{ inputs.REGION }}-docker.pkg.dev/${{ inputs.PROJECT_ID }}/dashboard-service/dashboard:${{ needs.build-dashboard.outputs.dashboard-image-tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Time:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/DATA-DOG/go-txdb"
 	"github.com/google/uuid"
@@ -14,11 +15,38 @@ import (
 const (
 	transactionDBDriver = "postgres"
 	transactionDBAlias  = "txdb"
-	// Use the same database as development but with transaction isolation
-	connectionStr = "postgres://apiuser:apipassword@localhost:9000/apidb?sslmode=disable"
 )
 
+// buildConnectionString creates a connection string from environment variables
+func buildConnectionString() string {
+	host := getEnvOrFail("DB_HOST")
+	port := getEnvOrFail("DB_PORT")
+	user := getEnvOrFail("DB_USER")
+	password := getEnvOrFail("DB_PASSWORD")
+	dbname := getEnvOrFail("DB_NAME")
+	
+	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", 
+		user, password, host, port, dbname)
+}
+
+func getEnvOrFail(key string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		panic(fmt.Sprintf("Environment variable %s is required but not set", key))
+	}
+	return value
+}
+
 func init() {
+	// Build connection string from environment variables
+	connectionStr := buildConnectionString()
+	log.Printf("Using connection string (password hidden): %s", 
+		fmt.Sprintf("postgres://%s:***@%s:%s/%s?sslmode=disable",
+			getEnvOrFail("DB_USER"),
+			getEnvOrFail("DB_HOST"), 
+			getEnvOrFail("DB_PORT"),
+			getEnvOrFail("DB_NAME")))
+	
 	// Register txdb driver for transaction-based testing
 	txdb.Register(transactionDBAlias, transactionDBDriver, connectionStr)
 	log.Println("Registered txdb driver for testing")

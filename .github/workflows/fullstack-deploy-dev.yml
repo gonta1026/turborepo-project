@@ -1,0 +1,112 @@
+name: Deploy Full Stack to Dev
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/api/**"
+      - "apps/dashboard/**"
+  workflow_dispatch:
+    inputs:
+      message:
+        description: "Deployment message"
+        required: false
+        type: string
+        default: "Manual full stack deployment to dev environment"
+
+jobs:
+  # Step 1: テスト実行
+  test-api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/api/go.mod
+          cache: false
+          
+      - name: Install golang-migrate
+        run: |
+          curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
+          sudo mv migrate /usr/local/bin/migrate
+          migrate -version
+
+      - name: PostgreSQL Test Container
+        run: |
+          docker run -d --name postgres-test \
+            -p 5432:5432 \
+            -e POSTGRES_USER=apiuser \
+            -e POSTGRES_PASSWORD=test_password \
+            -e POSTGRES_DB=apidb \
+            postgres:17-alpine
+            
+          # Wait for PostgreSQL
+          until docker exec postgres-test pg_isready -U apiuser; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+
+      - name: Run Database Migrations
+        run: |
+          cd apps/api
+          migrate -path migrations -database "postgres://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable" up
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_USER: apiuser
+          DB_PASSWORD: test_password
+          DB_NAME: apidb
+          
+      - name: Run API Tests
+        run: |
+          cd apps/api
+          go test -v ./...
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_USER: apiuser
+          DB_PASSWORD: test_password
+          DB_NAME: apidb
+
+  test-dashboard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.10.0"
+
+      - name: Install Dependencies
+        run: |
+          rm -rf node_modules package-lock.json
+          npm install
+
+      - name: Run Dashboard Tests
+        run: |
+          npm run test --workspace=dashboard
+
+  # Step 2: テスト成功後のデプロイ
+  deploy:
+    needs: [test-api, test-dashboard] # ← テスト成功必須
+    permissions:
+      contents: read
+      id-token: write
+    uses: "./.github/workflows/fullstack-deploy-reusable.yml"
+    with:
+      ENVIRONMENT: dev
+      PROJECT_ID: terraform-gcp-466623
+      REGION: asia-northeast1
+      VPC_CONNECTOR_NAME: main-connector
+      API_SERVICE_NAME: api-service
+      DASHBOARD_SERVICE_NAME: dashboard-service
+      API_BASE_URL: https://dev.api.my-learn-iac-sample.site
+      DASHBOARD_BASE_URL: https://dev.dashboard.my-learn-iac-sample.site
+    secrets:
+      db-password: ${{ secrets.DB_PASSWORD }}
+      wif-provider: ${{ secrets.DEV_WIF_PROVIDER }}
+      service-account: ${{ secrets.DEV_SERVICE_ACCOUNT }}
+      gcs-bucket-name: ${{ secrets.DEV_GCS_BUCKET_NAME }}
+      cdn-url-map-name: ${{ secrets.DEV_CDN_URL_MAP_NAME }}
