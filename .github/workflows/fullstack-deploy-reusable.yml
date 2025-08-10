@@ -174,7 +174,7 @@ jobs:
             --vpc-connector=${{ inputs.VPC_CONNECTOR_NAME }} \
             --set-env-vars="DB_HOST=${{ inputs.PROJECT_ID }}:${{ inputs.REGION }}:api-postgres,DB_USER=apiuser,DB_NAME=apidb,DB_PORT=5432" \
             --set-secrets="DB_PASSWORD=api-db-password:latest" \
-            --service-account=${{ secrets.service-account }}
+            --service-account=api-cloud-run-sa@${{ inputs.PROJECT_ID }}.iam.gserviceaccount.com
 
       # Step 2: Database Migration Check
       - name: Check Migration Requirements
@@ -198,7 +198,7 @@ jobs:
             --vpc-connector=${{ inputs.VPC_CONNECTOR_NAME }} \
             --set-env-vars="DB_HOST=${{ inputs.PROJECT_ID }}:${{ inputs.REGION }}:api-postgres,DB_USER=apiuser,DB_NAME=apidb,DB_PORT=5432" \
             --set-secrets="DB_PASSWORD=api-db-password:latest" \
-            --service-account=${{ secrets.service-account }} \
+            --service-account=api-cloud-run-sa@${{ inputs.PROJECT_ID }}.iam.gserviceaccount.com \
             --command="make" \
             --args="migrate-up"
             
