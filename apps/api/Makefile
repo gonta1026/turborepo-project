@@ -11,7 +11,6 @@ migrate-down:
 migrate-create:
 	@read -p "Enter migration name: " name; \
 	migrate create -ext sql -dir migrations -seq $$name
-
 # Docker commands
 docker-up:
 	docker-compose up -d
