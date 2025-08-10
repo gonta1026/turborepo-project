@@ -25,6 +25,12 @@ jobs:
         with:
           go-version-file: apps/api/go.mod
           cache: false
+          
+      - name: Install golang-migrate
+        run: |
+          curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
+          sudo mv migrate /usr/local/bin/migrate
+          migrate -version
 
       - name: PostgreSQL Test Container
         run: |
@@ -41,6 +47,17 @@ jobs:
             sleep 2
           done
 
+      - name: Run Database Migrations
+        run: |
+          cd apps/api
+          migrate -path migrations -database "postgres://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable" up
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_USER: apiuser
+          DB_PASSWORD: test_password
+          DB_NAME: apidb
+          
       - name: Run API Tests
         run: |
           cd apps/api
