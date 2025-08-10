@@ -136,8 +136,6 @@ jobs:
 
       - name: Build Dashboard
         run: |
-          # API URLを環境変数で設定
-          export VITE_API_URL=${{ inputs.API_BASE_URL }}
           npm run build --workspace=dashboard
 
       - name: Set build info
@@ -149,7 +147,7 @@ jobs:
   deploy-integrated:
     runs-on: ubuntu-latest
     environment: ${{ inputs.ENVIRONMENT }}
-    needs: [build-api, build-dashboard] # 両方完了必須
+    needs: [build-api] # APIビルド完了必須
 
     steps:
       - name: Checkout code
@@ -163,6 +161,21 @@ jobs:
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
+
+      - name: Setup Node.js for Frontend Build
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.10.0"
+
+      - name: Install Frontend Dependencies
+        run: |
+          # クリーンインストールで依存関係の問題を回避
+          rm -rf node_modules package-lock.json
+          npm install
+
+      - name: Build Frontend
+        run: |
+          npm run build --workspace=dashboard
 
       # Step 1: API No-Traffic Deploy
       - name: Deploy API (No Traffic)
