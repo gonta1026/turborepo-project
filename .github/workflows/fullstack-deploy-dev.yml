@@ -1,10 +1,14 @@
+# フルスタックアプリケーション開発環境デプロイワークフロー
+# APIとダッシュボードの変更検出時に自動でdev環境へデプロイ実行
 name: Deploy Full Stack to Dev
 on:
+  # メインブランチへのプッシュでAPI・ダッシュボード変更時にトリガー
   push:
     branches: [main]
     paths:
       - "apps/api/**"
       - "apps/dashboard/**"
+  # 手動実行オプション
   workflow_dispatch:
     inputs:
       message:
@@ -14,31 +18,115 @@ on:
         default: "Manual full stack deployment to dev environment"
 
 jobs:
-  # Step 1: テスト実行（再利用可能ワークフローを使用）
-  run-tests:
-    uses: "./.github/workflows/test-reusable.yml"
-    with:
-      test-db-password: "test_password"
+  # ===== フェーズ1: 品質チェック（並列実行） =====
+  # APIテスト（Go + PostgreSQL）
+  test-api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-  # Step 2: テスト成功後のデプロイ
+      # Go環境セットアップ
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/api/go.mod
+          cache: false
+
+      # DBマイグレーションツールのインストール
+      - name: Install golang-migrate
+        run: |
+          curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
+          sudo mv migrate /usr/local/bin/migrate
+          migrate -version
+
+      # テスト用PostgreSQL環境構築
+      - name: PostgreSQL Test Container
+        run: |
+          docker run -d --name postgres-test \
+            -p 5432:5432 \
+            -e POSTGRES_USER=apiuser \
+            -e POSTGRES_PASSWORD=test_password \
+            -e POSTGRES_DB=apidb \
+            postgres:17-alpine
+            
+          # PostgreSQL起動完了まで待機
+          until docker exec postgres-test pg_isready -U apiuser; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+
+      # テストDB用マイグレーション実行
+      - name: Run Database Migrations
+        run: |
+          cd apps/api
+          migrate -path migrations -database "postgres://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable" up
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_USER: apiuser
+          DB_PASSWORD: test_password
+          DB_NAME: apidb
+
+      # API統合テスト実行（全パッケージ）
+      - name: Run API Tests
+        run: |
+          cd apps/api
+          go test -v ./...
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_USER: apiuser
+          DB_PASSWORD: test_password
+          DB_NAME: apidb
+
+  # フロントエンドテスト（React + Vitest）
+  test-dashboard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node.js環境セットアップ
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.10.0"
+
+      # NPM依存関係のクリーンインストール
+      - name: Install Dependencies
+        run: |
+          rm -rf node_modules package-lock.json
+          npm install
+
+      # Dashboardコンポーネントテスト実行
+      - name: Run Dashboard Tests
+        run: |
+          npm run test --workspace=dashboard
+
+  # ===== フェーズ2: 本番デプロイ（テスト成功必須） =====
+  # API・Dashboard両方のテストが成功した場合のみ実行される統合デプロイ
   deploy:
-    needs: [run-tests] # ← テスト成功必須
+    needs: [test-api, test-dashboard] # 両テストジョブの成功が前提条件
     permissions:
-      contents: read
-      id-token: write
+      contents: read      # リポジトリ読み取り権限
+      id-token: write     # OIDC トークン生成権限（Workload Identity用）
+    # 再利用可能ワークフローを呼び出し（実際のデプロイ処理）
     uses: "./.github/workflows/fullstack-deploy-reusable.yml"
     with:
+      # デプロイ環境設定
       ENVIRONMENT: dev
       PROJECT_ID: terraform-gcp-466623
       REGION: asia-northeast1
       VPC_CONNECTOR_NAME: main-connector
+      # Cloud Runサービス名
       API_SERVICE_NAME: api-service
       DASHBOARD_SERVICE_NAME: dashboard-service
+      # 公開URL
       API_BASE_URL: https://dev.api.my-learn-iac-sample.site
       DASHBOARD_BASE_URL: https://dev.dashboard.my-learn-iac-sample.site
     secrets:
-      db-password: ${{ secrets.DB_PASSWORD }}
-      wif-provider: ${{ secrets.DEV_WIF_PROVIDER }}
-      service-account: ${{ secrets.DEV_SERVICE_ACCOUNT }}
-      gcs-bucket-name: ${{ secrets.DEV_GCS_BUCKET_NAME }}
-      cdn-url-map-name: ${{ secrets.DEV_CDN_URL_MAP_NAME }}
+      # 機密情報（GitHub Secrets経由で安全に渡す）
+      db-password: ${{ secrets.DB_PASSWORD }}           # データベースパスワード
+      wif-provider: ${{ secrets.DEV_WIF_PROVIDER }}     # Workload Identity Provider
+      service-account: ${{ secrets.DEV_SERVICE_ACCOUNT }} # GCPサービスアカウント
+      gcs-bucket-name: ${{ secrets.DEV_GCS_BUCKET_NAME }} # フロントエンド用GCSバケット
+      cdn-url-map-name: ${{ secrets.DEV_CDN_URL_MAP_NAME }} # CDN URL マップ名

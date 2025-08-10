@@ -65,7 +65,12 @@ func (u *todoUsecase) CreateTodo(req *models.CreateTodoRequest) (*models.Todo, e
 		return nil, ErrInvalidInput
 	}
 
-	todo, err := u.todoRepo.Create(req.Title, req.Description)
+	// Validate priority
+	if req.Priority != "" && req.Priority != "low" && req.Priority != "medium" && req.Priority != "high" {
+		return nil, ErrInvalidInput
+	}
+
+	todo, err := u.todoRepo.Create(req.Title, req.Description, req.Priority)
 	if err != nil {
 		return nil, err
 	}
@@ -88,8 +93,13 @@ func (u *todoUsecase) UpdateTodo(id int, req *models.UpdateTodoRequest) (*models
 		return nil, ErrTodoNotFound
 	}
 
+	// Validate priority
+	if req.Priority != "" && req.Priority != "low" && req.Priority != "medium" && req.Priority != "high" {
+		return nil, ErrInvalidInput
+	}
+
 	// Update with provided values
-	todo, err := u.todoRepo.Update(id, req.Title, req.Description, req.Completed)
+	todo, err := u.todoRepo.Update(id, req.Title, req.Description, req.Priority, req.Completed)
 	if err != nil {
 		return nil, err
 	}

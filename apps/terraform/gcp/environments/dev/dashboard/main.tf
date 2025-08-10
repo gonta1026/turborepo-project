@@ -38,7 +38,7 @@ resource "google_storage_bucket" "website_bucket" {
   # 静的ウェブサイトホスティング用の設定
   website {
     main_page_suffix = "index.html"
-    not_found_page   = "404.html"
+    not_found_page   = "index.html"
   }
 
   # パブリックアクセス用の設定

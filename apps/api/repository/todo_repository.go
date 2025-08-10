@@ -13,8 +13,8 @@ var ErrNoRows = sql.ErrNoRows
 type TodoRepository interface {
 	GetAll() ([]models.Todo, error)
 	GetByID(id int) (*models.Todo, error)
-	Create(title, description string) (*models.Todo, error)
-	Update(id int, title, description string, completed *bool) (*models.Todo, error)
+	Create(title, description, priority string) (*models.Todo, error)
+	Update(id int, title, description, priority string, completed *bool) (*models.Todo, error)
 	Delete(id int) error
 }
 
@@ -28,7 +28,7 @@ func NewTodoRepository(db *sqlx.DB) TodoRepository {
 
 func (r *todoRepository) GetAll() ([]models.Todo, error) {
 	var todos []models.Todo
-	query := `SELECT id, title, description, completed, created_at, updated_at FROM todos ORDER BY created_at DESC`
+	query := `SELECT id, title, description, completed, priority, created_at, updated_at FROM todos ORDER BY created_at DESC`
 	
 	err := r.db.Select(&todos, query)
 	if err != nil {
@@ -40,7 +40,7 @@ func (r *todoRepository) GetAll() ([]models.Todo, error) {
 
 func (r *todoRepository) GetByID(id int) (*models.Todo, error) {
 	var todo models.Todo
-	query := `SELECT id, title, description, completed, created_at, updated_at FROM todos WHERE id = $1`
+	query := `SELECT id, title, description, completed, priority, created_at, updated_at FROM todos WHERE id = $1`
 	
 	err := r.db.Get(&todo, query, id)
 	if err != nil {
@@ -53,14 +53,20 @@ func (r *todoRepository) GetByID(id int) (*models.Todo, error) {
 	return &todo, nil
 }
 
-func (r *todoRepository) Create(title, description string) (*models.Todo, error) {
+func (r *todoRepository) Create(title, description, priority string) (*models.Todo, error) {
 	var todo models.Todo
-	query := `
-		INSERT INTO todos (title, description, completed, created_at, updated_at) 
-		VALUES ($1, $2, false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) 
-		RETURNING id, title, description, completed, created_at, updated_at`
 	
-	err := r.db.QueryRowx(query, title, description).StructScan(&todo)
+	// Validate priority
+	if priority == "" {
+		priority = "medium"
+	}
+	
+	query := `
+		INSERT INTO todos (title, description, completed, priority, created_at, updated_at) 
+		VALUES ($1, $2, false, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) 
+		RETURNING id, title, description, completed, priority, created_at, updated_at`
+	
+	err := r.db.QueryRowx(query, title, description, priority).StructScan(&todo)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create todo: %w", err)
 	}
@@ -68,7 +74,7 @@ func (r *todoRepository) Create(title, description string) (*models.Todo, error)
 	return &todo, nil
 }
 
-func (r *todoRepository) Update(id int, title, description string, completed *bool) (*models.Todo, error) {
+func (r *todoRepository) Update(id int, title, description, priority string, completed *bool) (*models.Todo, error) {
 	// Build dynamic update query
 	query := `UPDATE todos SET updated_at = CURRENT_TIMESTAMP`
 	args := []interface{}{}
@@ -86,13 +92,19 @@ func (r *todoRepository) Update(id int, title, description string, completed *bo
 		argCount++
 	}
 
+	if priority != "" {
+		query += fmt.Sprintf(`, priority = $%d`, argCount)
+		args = append(args, priority)
+		argCount++
+	}
+
 	if completed != nil {
 		query += fmt.Sprintf(`, completed = $%d`, argCount)
 		args = append(args, *completed)
 		argCount++
 	}
 
-	query += fmt.Sprintf(` WHERE id = $%d RETURNING id, title, description, completed, created_at, updated_at`, argCount)
+	query += fmt.Sprintf(` WHERE id = $%d RETURNING id, title, description, completed, priority, created_at, updated_at`, argCount)
 	args = append(args, id)
 
 	var todo models.Todo
