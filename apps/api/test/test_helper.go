@@ -19,21 +19,22 @@ const (
 
 // buildConnectionString creates a connection string from environment variables
 func buildConnectionString() string {
-	host := getEnvOrDefault("DB_HOST", "localhost")
-	port := getEnvOrDefault("DB_PORT", "5432")
-	user := getEnvOrDefault("DB_USER", "apiuser")
-	password := getEnvOrDefault("DB_PASSWORD", "apipassword")
-	dbname := getEnvOrDefault("DB_NAME", "apidb")
+	host := getEnvOrFail("DB_HOST")
+	port := getEnvOrFail("DB_PORT")
+	user := getEnvOrFail("DB_USER")
+	password := getEnvOrFail("DB_PASSWORD")
+	dbname := getEnvOrFail("DB_NAME")
 	
 	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", 
 		user, password, host, port, dbname)
 }
 
-func getEnvOrDefault(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
+func getEnvOrFail(key string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		panic(fmt.Sprintf("Environment variable %s is required but not set", key))
 	}
-	return defaultValue
+	return value
 }
 
 func init() {
@@ -41,10 +42,10 @@ func init() {
 	connectionStr := buildConnectionString()
 	log.Printf("Using connection string (password hidden): %s", 
 		fmt.Sprintf("postgres://%s:***@%s:%s/%s?sslmode=disable",
-			getEnvOrDefault("DB_USER", "apiuser"),
-			getEnvOrDefault("DB_HOST", "localhost"), 
-			getEnvOrDefault("DB_PORT", "5432"),
-			getEnvOrDefault("DB_NAME", "apidb")))
+			getEnvOrFail("DB_USER"),
+			getEnvOrFail("DB_HOST"), 
+			getEnvOrFail("DB_PORT"),
+			getEnvOrFail("DB_NAME")))
 	
 	// Register txdb driver for transaction-based testing
 	txdb.Register(transactionDBAlias, transactionDBDriver, connectionStr)

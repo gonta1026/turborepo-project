@@ -22,17 +22,19 @@ type Config struct {
 }
 
 func Load() *Config {
-	return &Config{
-		DBHost:           getEnv("DB_HOST", "localhost"),
-		DBPort:           getEnv("DB_PORT", "9000"),
-		DBUser:           getEnv("DB_USER", "apiuser"),
-		DBPassword:       getEnv("DB_PASSWORD", "apipassword"),
-		DBName:           getEnv("DB_NAME", "apidb"),
+	config := &Config{
+		DBHost:           getEnvRequired("DB_HOST"),
+		DBPort:           getEnvRequired("DB_PORT"),
+		DBUser:           getEnvRequired("DB_USER"),
+		DBPassword:       getEnvRequired("DB_PASSWORD"),
+		DBName:           getEnvRequired("DB_NAME"),
 		DBSSLMode:        getEnv("DB_SSLMODE", "disable"),
 		UseCloudSQL:      getEnvBool("USE_CLOUD_SQL", false),
 		CloudSQLInstance: getEnv("CLOUD_SQL_INSTANCE", ""),
 		Environment:      getEnv("ENVIRONMENT", "development"),
 	}
+	
+	return config
 }
 
 func (c *Config) GetDSN() string {
@@ -63,6 +65,14 @@ func getEnv(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+func getEnvRequired(key string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		panic(fmt.Sprintf("Environment variable %s is required but not set", key))
+	}
+	return value
 }
 
 func getEnvBool(key string, defaultValue bool) bool {
