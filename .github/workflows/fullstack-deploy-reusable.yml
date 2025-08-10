@@ -172,7 +172,7 @@ jobs:
             --region=${{ inputs.REGION }} \
             --no-traffic \
             --vpc-connector=${{ inputs.VPC_CONNECTOR_NAME }} \
-            --set-env-vars="DB_HOST=10.71.0.5,DB_USER=apiuser,DB_NAME=apidb,DB_PORT=5432" \
+            --set-env-vars="DB_HOST=10.71.0.5,DB_USER=api_user,DB_NAME=api_db,DB_PORT=5432" \
             --set-secrets="DB_PASSWORD=api-db-password:latest" \
             --service-account=api-cloud-run-sa@${{ inputs.PROJECT_ID }}.iam.gserviceaccount.com
 
@@ -196,7 +196,7 @@ jobs:
             --image=${{ inputs.REGION }}-docker.pkg.dev/${{ inputs.PROJECT_ID }}/api-service/api:${{ needs.build-api.outputs.api-image-tag }} \
             --region=${{ inputs.REGION }} \
             --vpc-connector=${{ inputs.VPC_CONNECTOR_NAME }} \
-            --set-env-vars="DB_HOST=10.71.0.5,DB_USER=apiuser,DB_NAME=apidb,DB_PORT=5432" \
+            --set-env-vars="DB_HOST=10.71.0.5,DB_USER=api_user,DB_NAME=api_db,DB_PORT=5432" \
             --set-secrets="DB_PASSWORD=api-db-password:latest" \
             --service-account=api-cloud-run-sa@${{ inputs.PROJECT_ID }}.iam.gserviceaccount.com \
             --command="make" \
