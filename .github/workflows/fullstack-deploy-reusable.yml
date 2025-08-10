@@ -43,10 +43,6 @@ jobs:
   build-api:
     runs-on: ubuntu-latest
     environment: ${{ inputs.ENVIRONMENT }}
-    
-    permissions:
-      contents: read
-      id-token: write # Workload Identity Federation用
 
     services:
       postgres:
@@ -135,10 +131,6 @@ jobs:
   build-dashboard:
     runs-on: ubuntu-latest
     environment: ${{ inputs.ENVIRONMENT }}
-    
-    permissions:
-      contents: read
-      id-token: write
       
     outputs:
       dashboard-image-tag: ${{ steps.build-info.outputs.image-tag }}
@@ -205,10 +197,6 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ inputs.ENVIRONMENT }}
     needs: [build-api, build-dashboard]  # 両方完了必須
-    
-    permissions:
-      contents: read
-      id-token: write
       
     steps:
       - name: Checkout code

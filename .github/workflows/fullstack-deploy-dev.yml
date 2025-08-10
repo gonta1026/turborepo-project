@@ -15,6 +15,9 @@ on:
 
 jobs:
   deploy:
+    permissions:
+      contents: read
+      id-token: write
     uses: "./.github/workflows/fullstack-deploy-reusable.yml"
     with:
       ENVIRONMENT: dev
