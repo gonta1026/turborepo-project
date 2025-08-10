@@ -145,18 +145,6 @@ jobs:
         run: |
           echo "image-tag=${{ github.sha }}" >> $GITHUB_OUTPUT
 
-      - name: Deploy Dashboard to Cloud Storage
-        run: |
-          # Cloud Storageにデプロイ（既存方式を活用）
-          gsutil -m rsync -r -d ./apps/dashboard/dist gs://${{ secrets.gcs-bucket-name }}
-          gsutil -m setmeta -h "Cache-Control:public, max-age=3600" -r gs://${{ secrets.gcs-bucket-name }}/**
-
-      - name: Invalidate CDN cache
-        run: |
-          gcloud compute url-maps invalidate-cdn-cache ${{ secrets.cdn-url-map-name }} \
-            --path "/*" \
-            --global
-
   # 統合デプロイ: API → Dashboard 順序制御
   deploy-integrated:
     runs-on: ubuntu-latest
@@ -188,17 +176,7 @@ jobs:
             --set-secrets="DB_PASSWORD=api-db-password:latest" \
             --service-account=${{ secrets.service-account }}
 
-      # Step 2: Dashboard No-Traffic Deploy
-      - name: Deploy Dashboard (No Traffic)
-        run: |
-          gcloud run deploy ${{ inputs.DASHBOARD_SERVICE_NAME }} \
-            --image=${{ inputs.REGION }}-docker.pkg.dev/${{ inputs.PROJECT_ID }}/dashboard-service/dashboard:${{ needs.build-dashboard.outputs.dashboard-image-tag }} \
-            --region=${{ inputs.REGION }} \
-            --no-traffic \
-            --set-env-vars="VITE_API_URL=${{ inputs.API_BASE_URL }}" \
-            --service-account=${{ secrets.service-account }}
-
-      # Step 3: Database Migration Check
+      # Step 2: Database Migration Check
       - name: Check Migration Requirements
         id: migration-check
         run: |
@@ -227,7 +205,7 @@ jobs:
           gcloud run jobs execute migration-job-${{ github.sha }} --wait --region=${{ inputs.REGION }}
           echo "✅ Database migrations completed"
 
-      # Step 4: API Traffic切り替え + ヘルスチェック
+      # Step 3: API Traffic切り替え + ヘルスチェック
       - name: Switch API Traffic
         run: |
           echo "🔄 Switching API traffic to new revision..."
@@ -247,15 +225,24 @@ jobs:
             sleep 10
           done
 
-      # Step 5: Dashboard Traffic切り替え（API正常後）
-      - name: Switch Dashboard Traffic
+      # Step 4: Frontend Deploy (API成功後のみ実行)
+      - name: Deploy Frontend to Cloud Storage
         run: |
-          echo "🔄 Switching Dashboard traffic to new revision..."
-          gcloud run services update-traffic ${{ inputs.DASHBOARD_SERVICE_NAME }} \
-            --region=${{ inputs.REGION }} \
-            --to-latest
+          echo "🚀 Deploying frontend to Cloud Storage..."
+          # ビルドされたファイルをCloud Storageにアップロード
+          gsutil -m rsync -r -d ./apps/dashboard/dist gs://${{ secrets.gcs-bucket-name }}
+          gsutil -m setmeta -h "Cache-Control:public, max-age=3600" -r gs://${{ secrets.gcs-bucket-name }}/**
+          echo "✅ Frontend deployed to Cloud Storage"
 
-      # Step 6: 統合ヘルスチェック
+      - name: Invalidate CDN Cache
+        run: |
+          echo "🔄 Invalidating CDN cache..."
+          gcloud compute url-maps invalidate-cdn-cache ${{ secrets.cdn-url-map-name }} \
+            --path "/*" \
+            --global
+          echo "✅ CDN cache invalidated"
+
+      # Step 5: 統合ヘルスチェック
       - name: Dashboard Health Check
         run: |
           echo "🔍 Checking Dashboard health..."
@@ -272,7 +259,7 @@ jobs:
             exit 1
           fi
 
-      # Step 7: Deployment Summary
+      # Step 6: Deployment Summary
       - name: Deployment Complete
         run: |
           echo "### 🚀 Full Stack Deployment Complete!" >> $GITHUB_STEP_SUMMARY
