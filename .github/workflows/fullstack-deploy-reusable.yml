@@ -199,7 +199,8 @@ jobs:
             exit 1
           fi
 
-      # Step 6: Deployment Summary
+      # ===== デプロイ完了レポート =====
+      # Step 6: デプロイ結果サマリー生成（GitHub Actions Summary出力）
       - name: Deployment Complete
         run: |
           echo "### 🚀 Full Stack Deployment Complete!" >> $GITHUB_STEP_SUMMARY
