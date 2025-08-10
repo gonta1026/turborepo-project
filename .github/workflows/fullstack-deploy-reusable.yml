@@ -37,6 +37,14 @@ on:
     secrets:
       db-password:
         required: true
+      wif-provider:
+        required: true
+      service-account:
+        required: true
+      gcs-bucket-name:
+        required: true
+      cdn-url-map-name:
+        required: true
 
 jobs:
   # 並列ビルド: API + Dashboard
@@ -75,8 +83,8 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: projects/554119866126/locations/global/workloadIdentityPools/github-actions-pool/providers/github-provider
-          service_account: github-actions-dashboard@terraform-gcp-466623.iam.gserviceaccount.com
+          workload_identity_provider: ${{ secrets.wif-provider }}
+          service_account: ${{ secrets.service-account }}
           
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
@@ -88,26 +96,25 @@ jobs:
       - name: Run API Tests
         run: |
           cd apps/api
-          # DB接続テスト用の環境変数設定
-          export DB_HOST=127.0.0.1
-          export DB_PORT=9000
-          export DB_USER=apiuser
-          export DB_PASSWORD=${{ secrets.db-password }}
-          export DB_NAME=apidb
-          
           go test -v ./...
           go test -race -coverprofile=coverage.out ./...
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 9000
+          DB_USER: apiuser
+          DB_PASSWORD: ${{ secrets.db-password }}
+          DB_NAME: apidb
           
       - name: Run Database Migrations (Test DB)
         run: |
           cd apps/api
-          export DB_HOST=127.0.0.1
-          export DB_PORT=9000
-          export DB_USER=apiuser
-          export DB_PASSWORD=${{ secrets.db-password }}
-          export DB_NAME=apidb
-          
           make migrate-up
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 9000
+          DB_USER: apiuser
+          DB_PASSWORD: ${{ secrets.db-password }}
+          DB_NAME: apidb
           
       - name: Set build info
         id: build-info
@@ -147,8 +154,8 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: projects/554119866126/locations/global/workloadIdentityPools/github-actions-pool/providers/github-provider
-          service_account: github-actions-dashboard@terraform-gcp-466623.iam.gserviceaccount.com
+          workload_identity_provider: ${{ secrets.wif-provider }}
+          service_account: ${{ secrets.service-account }}
           
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
@@ -178,19 +185,17 @@ jobs:
         run: |
           echo "image-tag=${{ github.sha }}" >> $GITHUB_OUTPUT
           
-      - name: Build Dashboard Docker Image
+      - name: Deploy Dashboard to Cloud Storage
         run: |
-          cd apps/dashboard
-          docker build \
-            --cache-from=${{ inputs.REGION }}-docker.pkg.dev/${{ inputs.PROJECT_ID }}/dashboard-service/dashboard:latest \
-            --tag ${{ inputs.REGION }}-docker.pkg.dev/${{ inputs.PROJECT_ID }}/dashboard-service/dashboard:${{ github.sha }} \
-            --tag ${{ inputs.REGION }}-docker.pkg.dev/${{ inputs.PROJECT_ID }}/dashboard-service/dashboard:latest \
-            .
-            
-      - name: Push Dashboard Docker Image
+          # Cloud Storageにデプロイ（既存方式を活用）
+          gsutil -m rsync -r -d ./apps/dashboard/dist gs://${{ secrets.gcs-bucket-name }}
+          gsutil -m setmeta -h "Cache-Control:public, max-age=3600" -r gs://${{ secrets.gcs-bucket-name }}/**
+          
+      - name: Invalidate CDN cache
         run: |
-          docker push ${{ inputs.REGION }}-docker.pkg.dev/${{ inputs.PROJECT_ID }}/dashboard-service/dashboard:${{ github.sha }}
-          docker push ${{ inputs.REGION }}-docker.pkg.dev/${{ inputs.PROJECT_ID }}/dashboard-service/dashboard:latest
+          gcloud compute url-maps invalidate-cdn-cache ${{ secrets.cdn-url-map-name }} \
+            --path "/*" \
+            --global
 
   # 統合デプロイ: API → Dashboard 順序制御
   deploy-integrated:
@@ -205,8 +210,8 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: projects/554119866126/locations/global/workloadIdentityPools/github-actions-pool/providers/github-provider
-          service_account: github-actions-dashboard@terraform-gcp-466623.iam.gserviceaccount.com
+          workload_identity_provider: ${{ secrets.wif-provider }}
+          service_account: ${{ secrets.service-account }}
           
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
@@ -221,7 +226,7 @@ jobs:
             --vpc-connector=${{ inputs.VPC_CONNECTOR_NAME }} \
             --set-env-vars="DB_HOST=${{ inputs.PROJECT_ID }}:${{ inputs.REGION }}:api-postgres,DB_USER=apiuser,DB_NAME=apidb,DB_PORT=5432" \
             --set-secrets="DB_PASSWORD=api-db-password:latest" \
-            --service-account=github-actions-dashboard@terraform-gcp-466623.iam.gserviceaccount.com
+            --service-account=${{ secrets.service-account }}
             
       # Step 2: Dashboard No-Traffic Deploy  
       - name: Deploy Dashboard (No Traffic)
@@ -231,7 +236,7 @@ jobs:
             --region=${{ inputs.REGION }} \
             --no-traffic \
             --set-env-vars="VITE_API_URL=${{ inputs.API_BASE_URL }}" \
-            --service-account=github-actions-dashboard@terraform-gcp-466623.iam.gserviceaccount.com
+            --service-account=${{ secrets.service-account }}
             
       # Step 3: Database Migration Check
       - name: Check Migration Requirements
@@ -255,7 +260,7 @@ jobs:
             --vpc-connector=${{ inputs.VPC_CONNECTOR_NAME }} \
             --set-env-vars="DB_HOST=${{ inputs.PROJECT_ID }}:${{ inputs.REGION }}:api-postgres,DB_USER=apiuser,DB_NAME=apidb,DB_PORT=5432" \
             --set-secrets="DB_PASSWORD=api-db-password:latest" \
-            --service-account=github-actions-dashboard@terraform-gcp-466623.iam.gserviceaccount.com \
+            --service-account=${{ secrets.service-account }} \
             --command="make" \
             --args="migrate-up"
             

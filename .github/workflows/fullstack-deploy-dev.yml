@@ -30,3 +30,7 @@ jobs:
       DASHBOARD_BASE_URL: https://dev.dashboard.my-learn-iac-sample.site
     secrets:
       db-password: ${{ secrets.DB_PASSWORD }}
+      wif-provider: ${{ secrets.DEV_WIF_PROVIDER }}
+      service-account: ${{ secrets.DEV_SERVICE_ACCOUNT }}
+      gcs-bucket-name: ${{ secrets.DEV_GCS_BUCKET_NAME }}
+      cdn-url-map-name: ${{ secrets.DEV_CDN_URL_MAP_NAME }}
