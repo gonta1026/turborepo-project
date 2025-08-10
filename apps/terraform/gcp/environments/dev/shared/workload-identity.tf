@@ -44,3 +44,16 @@ resource "google_iam_workload_identity_pool_provider" "github_actions_provider" 
     issuer_uri = "https://token.actions.githubusercontent.com"
   }
 }
+
+# ======================================
+# Service Account Impersonation
+# ======================================
+
+# Workload Identity FederationがGitHub ActionsサービスアカウントをImpersonateする権限
+# ローカルのサービスアカウントに対してworkloadIdentityUserバインディングを設定
+resource "google_service_account_iam_member" "github_actions_workload_identity_binding" {
+  service_account_id = google_service_account.github_actions_deployer.name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github_actions_pool.name}/attribute.repository/${var.github_repository}"
+}
+

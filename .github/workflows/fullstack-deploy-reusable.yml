@@ -180,7 +180,7 @@ jobs:
       - name: Deploy API (No Traffic)
         run: |
           gcloud run deploy ${{ inputs.API_SERVICE_NAME }} \
-            --image=${{ inputs.region }}-docker.pkg.dev/${{ inputs.project-id }}/api-service/api:${{ needs.build-api.outputs.api-image-tag }} \
+            --image=${{ inputs.REGION }}-docker.pkg.dev/${{ inputs.PROJECT_ID }}/api-service/api:${{ needs.build-api.outputs.api-image-tag }} \
             --region=${{ inputs.REGION }} \
             --no-traffic \
             --vpc-connector=${{ inputs.VPC_CONNECTOR_NAME }} \
@@ -192,7 +192,7 @@ jobs:
       - name: Deploy Dashboard (No Traffic)
         run: |
           gcloud run deploy ${{ inputs.DASHBOARD_SERVICE_NAME }} \
-            --image=${{ inputs.region }}-docker.pkg.dev/${{ inputs.project-id }}/dashboard-service/dashboard:${{ needs.build-dashboard.outputs.dashboard-image-tag }} \
+            --image=${{ inputs.REGION }}-docker.pkg.dev/${{ inputs.PROJECT_ID }}/dashboard-service/dashboard:${{ needs.build-dashboard.outputs.dashboard-image-tag }} \
             --region=${{ inputs.REGION }} \
             --no-traffic \
             --set-env-vars="VITE_API_URL=${{ inputs.API_BASE_URL }}" \
@@ -215,7 +215,7 @@ jobs:
         run: |
           echo "🚀 Running database migrations..."
           gcloud run jobs create migration-job-${{ github.sha }} \
-            --image=${{ inputs.region }}-docker.pkg.dev/${{ inputs.project-id }}/api-service/api:${{ needs.build-api.outputs.api-image-tag }} \
+            --image=${{ inputs.REGION }}-docker.pkg.dev/${{ inputs.PROJECT_ID }}/api-service/api:${{ needs.build-api.outputs.api-image-tag }} \
             --region=${{ inputs.REGION }} \
             --vpc-connector=${{ inputs.VPC_CONNECTOR_NAME }} \
             --set-env-vars="DB_HOST=${{ inputs.PROJECT_ID }}:${{ inputs.REGION }}:api-postgres,DB_USER=apiuser,DB_NAME=apidb,DB_PORT=5432" \
@@ -224,7 +224,7 @@ jobs:
             --command="make" \
             --args="migrate-up"
             
-          gcloud run jobs execute migration-job-${{ github.sha }} --wait --region=${{ inputs.region }}
+          gcloud run jobs execute migration-job-${{ github.sha }} --wait --region=${{ inputs.REGION }}
           echo "✅ Database migrations completed"
 
       # Step 4: API Traffic切り替え + ヘルスチェック

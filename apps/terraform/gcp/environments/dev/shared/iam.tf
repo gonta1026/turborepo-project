@@ -96,3 +96,35 @@ resource "google_project_iam_member" "github_actions_sql_instance_user" {
   role    = "roles/cloudsql.instanceUser"
   member  = "serviceAccount:${google_service_account.github_actions_deployer.email}"
 }
+
+# ======================================
+# Artifact Registry IAM
+# ======================================
+
+# GitHub ActionsサービスアカウントにArtifact Registry Writer権限を付与
+# Docker ImageのpushとpullをするFull権限
+resource "google_project_iam_member" "github_actions_artifact_registry_writer" {
+  project = var.project_id
+  role    = "roles/artifactregistry.writer"
+  member  = "serviceAccount:${google_service_account.github_actions_deployer.email}"
+}
+
+# ======================================
+# Cloud Run IAM
+# ======================================
+
+# GitHub ActionsサービスアカウントにCloud Run Developer権限を付与  
+# Cloud Runサービスのデプロイと管理に必要
+resource "google_project_iam_member" "github_actions_cloud_run_developer" {
+  project = var.project_id
+  role    = "roles/run.developer"
+  member  = "serviceAccount:${google_service_account.github_actions_deployer.email}"
+}
+
+# GitHub ActionsサービスアカウントにCloud Run Service Agent権限を付与
+# Cloud Runサービスの実行に必要
+resource "google_project_iam_member" "github_actions_cloud_run_service_agent" {
+  project = var.project_id
+  role    = "roles/run.serviceAgent"
+  member  = "serviceAccount:${google_service_account.github_actions_deployer.email}"
+}

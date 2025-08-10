@@ -141,3 +141,27 @@ output "shared_certificate_map" {
     id   = google_certificate_manager_certificate_map.shared_cert_map.id
   }
 }
+
+# ======================================
+# Artifact Registry Outputs
+# ======================================
+
+output "api_service_repository_id" {
+  description = "API Service Artifact Registry repository ID"
+  value       = google_artifact_registry_repository.api_service.id
+}
+
+output "api_service_repository_name" {
+  description = "API Service Artifact Registry repository name"
+  value       = google_artifact_registry_repository.api_service.name
+}
+
+output "dashboard_service_repository_id" {
+  description = "Dashboard Service Artifact Registry repository ID"
+  value       = google_artifact_registry_repository.dashboard_service.id
+}
+
+output "dashboard_service_repository_name" {
+  description = "Dashboard Service Artifact Registry repository name"
+  value       = google_artifact_registry_repository.dashboard_service.name
+}
