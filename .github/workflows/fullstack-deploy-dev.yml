@@ -1,0 +1,29 @@
+name: Deploy Full Stack to Dev
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/api/**"
+      - "apps/dashboard/**"
+  workflow_dispatch:
+    inputs:
+      message:
+        description: "Deployment message"
+        required: false
+        type: string
+        default: "Manual full stack deployment to dev environment"
+
+jobs:
+  deploy:
+    uses: "./.github/workflows/fullstack-deploy-reusable.yml"
+    with:
+      ENVIRONMENT: dev
+      PROJECT_ID: terraform-gcp-466623
+      REGION: asia-northeast1
+      VPC_CONNECTOR_NAME: main-connector
+      API_SERVICE_NAME: api-service
+      DASHBOARD_SERVICE_NAME: dashboard-service
+      API_BASE_URL: https://dev.api.my-learn-iac-sample.site
+      DASHBOARD_BASE_URL: https://dev.dashboard.my-learn-iac-sample.site
+    secrets:
+      db-password: ${{ secrets.DB_PASSWORD }}
