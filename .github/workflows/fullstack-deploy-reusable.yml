@@ -93,6 +93,28 @@ jobs:
         run: |
           gcloud auth configure-docker ${{ inputs.REGION }}-docker.pkg.dev
           
+      - name: Install PostgreSQL Client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          
+      - name: Debug Database Connection
+        run: |
+          echo "🔍 Database connection debugging:"
+          echo "DB_HOST: 127.0.0.1"
+          echo "DB_PORT: 9000"  
+          echo "DB_USER: apiuser"
+          echo "DB_NAME: apidb"
+          echo ""
+          echo "Testing PostgreSQL service availability..."
+          
+          # ポート確認
+          nc -zv 127.0.0.1 9000 || echo "❌ Port 9000 not reachable"
+          
+          # PostgreSQL接続テスト
+          echo "Testing database connection..."
+          PGPASSWORD=test_password_123 psql -h 127.0.0.1 -p 9000 -U apiuser -d apidb -c "SELECT version();" || echo "❌ Database connection failed"
+          
       - name: Run API Tests
         run: |
           cd apps/api
