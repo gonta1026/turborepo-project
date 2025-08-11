@@ -66,22 +66,27 @@ jobs:
           echo "TURBO_API: $TURBO_API"
           echo "TURBO_TOKEN length: ${#TURBO_TOKEN}"
           echo "Testing server connection..."
-          curl -s -w "HTTP Status: %{http_code}\n" "$TURBO_API/v8/artifacts/events" -H "Authorization: Bearer $TURBO_TOKEN" | head -10 || echo "❌ Server connection failed"
+          curl -s -w "HTTP Status: %{http_code}\n" "$TURBO_API/v8/artifacts/events?team=$TURBO_TEAM" -H "Authorization: Bearer $TURBO_TOKEN" | head -10 || echo "❌ Server connection failed"
           
           # 変更されたパッケージのみビルド・リント実行
-          FILTER_PACKAGES=""
+          FILTER_PACKAGES=()
           if [ "${{ steps.test-changes.outputs.api-test-needed }}" == "true" ]; then
-            FILTER_PACKAGES="${FILTER_PACKAGES}api,"
+            FILTER_PACKAGES+=("api")
           fi
           if [ "${{ steps.test-changes.outputs.dashboard-test-needed }}" == "true" ]; then
-            FILTER_PACKAGES="${FILTER_PACKAGES}dashboard,"
+            FILTER_PACKAGES+=("dashboard")
           fi
           
-          if [ -n "$FILTER_PACKAGES" ]; then
-            # 末尾のカンマを削除
-            FILTER_PACKAGES=${FILTER_PACKAGES%,}
-            echo "🚀 Running build and lint for: $FILTER_PACKAGES"
-            npx turbo run build lint --filter="$FILTER_PACKAGES" --verbosity=2
+          if [ ${#FILTER_PACKAGES[@]} -gt 0 ]; then
+            # 配列を{package1,package2}形式に変換
+            if [ ${#FILTER_PACKAGES[@]} -eq 1 ]; then
+              FILTER_ARG="${FILTER_PACKAGES[0]}"
+            else
+              # 複数パッケージは{package1,package2}形式
+              FILTER_ARG="{$(IFS=,; echo "${FILTER_PACKAGES[*]}")}"
+            fi
+            echo "🚀 Running build and lint for: $FILTER_ARG"
+            npx turbo run build lint --filter="$FILTER_ARG" --verbosity=2
           else
             echo "✅ No packages need building - all up to date"
           fi
