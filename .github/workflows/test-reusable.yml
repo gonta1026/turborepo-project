@@ -39,7 +39,7 @@ jobs:
           echo "TURBO_API: $TURBO_API"
           echo "TURBO_TOKEN length: ${#TURBO_TOKEN}"
           echo "Testing server connection..."
-          curl -v "$TURBO_API/v8/artifacts/events" -H "Authorization: Bearer $TURBO_TOKEN" || echo "❌ Server connection failed"
+          curl -s -w "HTTP Status: %{http_code}\n" "$TURBO_API/v8/artifacts/events" -H "Authorization: Bearer $TURBO_TOKEN" | head -10 || echo "❌ Server connection failed"
           echo "🚀 Starting Turbo build..."
           npx turbo run build lint --verbosity=2
         env:
