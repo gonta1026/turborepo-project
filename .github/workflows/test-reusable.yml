@@ -37,28 +37,33 @@ jobs:
           rm -rf node_modules package-lock.json
           npm install
 
-      # 変更検知: テスト実行対象の決定
+      # 変更検知: Git差分ベースの確実な変更検知
       - name: Detect Changes for Testing
         id: test-changes
         run: |
-          echo "🔍 Checking which packages need testing..."
+          echo "🔍 Checking which packages need testing using Git diff..."
+          
+          # 変更されたファイル一覧を取得
+          CHANGED_FILES=$(git diff --name-only HEAD^ HEAD)
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
           
           # APIテストが必要かチェック
-          if npx turbo-ignore api; then
-            echo "api-test-needed=false" >> $GITHUB_OUTPUT
-            echo "✅ API unchanged - skipping tests"
-          else
+          if echo "$CHANGED_FILES" | grep -q "^apps/api/" || echo "$CHANGED_FILES" | grep -q "^packages/"; then
             echo "api-test-needed=true" >> $GITHUB_OUTPUT
             echo "🔄 API changes detected - running tests"
+          else
+            echo "api-test-needed=false" >> $GITHUB_OUTPUT
+            echo "✅ API unchanged - skipping tests"
           fi
           
           # Dashboardテストが必要かチェック
-          if npx turbo-ignore dashboard; then
-            echo "dashboard-test-needed=false" >> $GITHUB_OUTPUT
-            echo "✅ Dashboard unchanged - skipping tests"
-          else
+          if echo "$CHANGED_FILES" | grep -q "^apps/dashboard/" || echo "$CHANGED_FILES" | grep -q "^packages/"; then
             echo "dashboard-test-needed=true" >> $GITHUB_OUTPUT
             echo "🔄 Dashboard changes detected - running tests"
+          else
+            echo "dashboard-test-needed=false" >> $GITHUB_OUTPUT
+            echo "✅ Dashboard unchanged - skipping tests"
           fi
 
       # 選択的ビルド・リント実行
