@@ -2,39 +2,34 @@ package config
 
 import (
 	"fmt"
-	"os"
+
+	"github.com/kelseyhightower/envconfig"
 )
 
 type Config struct {
-	DBHost     string
-	DBPort     string
-	DBUser     string
-	DBPassword string
-	DBName     string
-	DBSSLMode  string
+	DBHost     string `envconfig:"DB_HOST" required:"true"`
+	DBPort     string `envconfig:"DB_PORT" required:"true"`
+	DBUser     string `envconfig:"DB_USER" required:"true"`
+	DBPassword string `envconfig:"DB_PASSWORD" required:"true"`
+	DBName     string `envconfig:"DB_NAME" required:"true"`
+	DBSSLMode  string `envconfig:"DB_SSLMODE" default:"disable"`
 	
 	// Cloud SQL specific
-	UseCloudSQL      bool
-	CloudSQLInstance string
+	UseCloudSQL      bool   `envconfig:"USE_CLOUD_SQL" default:"false"`
+	CloudSQLInstance string `envconfig:"CLOUD_SQL_INSTANCE" default:""`
 	
 	// Environment
-	Environment string
+	Environment string `envconfig:"ENVIRONMENT" default:"development"`
 }
 
-func Load() *Config {
-	config := &Config{
-		DBHost:           getEnvRequired("DB_HOST"),
-		DBPort:           getEnvRequired("DB_PORT"),
-		DBUser:           getEnvRequired("DB_USER"),
-		DBPassword:       getEnvRequired("DB_PASSWORD"),
-		DBName:           getEnvRequired("DB_NAME"),
-		DBSSLMode:        getEnv("DB_SSLMODE", "disable"),
-		UseCloudSQL:      getEnvBool("USE_CLOUD_SQL", false),
-		CloudSQLInstance: getEnv("CLOUD_SQL_INSTANCE", ""),
-		Environment:      getEnv("ENVIRONMENT", "development"),
+func Load() (*Config, error) {
+	var config Config
+	err := envconfig.Process("", &config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
 	
-	return config
+	return &config, nil
 }
 
 func (c *Config) GetDSN() string {
@@ -60,28 +55,3 @@ func (c *Config) GetDSN() string {
 	)
 }
 
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
-
-func getEnvRequired(key string) string {
-	value := os.Getenv(key)
-	if value == "" {
-		panic(fmt.Sprintf("Environment variable %s is required but not set", key))
-	}
-	return value
-}
-
-func getEnvBool(key string, defaultValue bool) bool {
-	value := os.Getenv(key)
-	if value == "true" || value == "1" {
-		return true
-	}
-	if value == "false" || value == "0" {
-		return false
-	}
-	return defaultValue
-}
