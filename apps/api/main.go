@@ -11,6 +11,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 type HealthResponse struct {
@@ -24,8 +25,15 @@ type APIResponse struct {
 }
 
 func main() {
-	// Load configuration
-	cfg := config.Load()
+	// Load .env file for local development (ignore errors in production)
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found (this is normal in production)")
+	}
+	// Load configuration from environment variables
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatal("Failed to load configuration: ", err)
+	}
 
 	// Initialize database
 	if err := db.InitDB(cfg); err != nil {

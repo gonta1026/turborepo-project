@@ -6,10 +6,41 @@ on:
         required: false
         type: string
         description: "Database password for tests"
+    secrets:
+      turbo-token:
+        required: true
+        description: "Turborepo remote cache authentication token"
 
 jobs:
-  # API テスト
+  # ===== Turboビルド（モノレポ全体） =====
+  # Turborepoリモートキャッシュを使用したモノレポ全体のビルド・リント
+  turbo-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node.js環境セットアップ
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.10.0"
+
+      # NPM依存関係のクリーンインストール
+      - name: Install Dependencies
+        run: |
+          rm -rf node_modules package-lock.json
+          npm install
+
+      # Turboリモートキャッシュでビルド・リント実行
+      - name: Build and Lint with Remote Cache
+        run: |
+          turbo run build lint
+        env:
+          TURBO_API: https://turbo-cache-server-cvezib2f4q-an.a.run.app
+          TURBO_TOKEN: ${{ secrets.turbo-token }}
+  # API テスト（Turboビルド完了後に実行）
   test-api:
+    needs: turbo-build # Turboビルド完了後に実行
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -63,8 +94,9 @@ jobs:
           DB_PASSWORD: ${{ inputs.test-db-password }}
           DB_NAME: apidb
 
-  # Dashboard テスト
+  # Dashboard テスト（Turboビルド完了後に実行）
   test-dashboard:
+    needs: turbo-build # Turboビルド完了後に実行
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -74,11 +106,13 @@ jobs:
         with:
           node-version: "22.10.0"
 
+      # 依存関係のインストール（ビルドは turbo-build で完了済み）
       - name: Install Dependencies
         run: |
           rm -rf node_modules package-lock.json
           npm install
 
+      # Dashboardコンポーネントテスト実行
       - name: Run Dashboard Tests
         run: |
           npm run test --workspace=dashboard

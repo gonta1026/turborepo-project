@@ -4,11 +4,12 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/DATA-DOG/go-txdb"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	"github.com/joho/godotenv"
+	"github.com/kelseyhightower/envconfig"
 	_ "github.com/lib/pq"
 )
 
@@ -17,35 +18,45 @@ const (
 	transactionDBAlias  = "txdb"
 )
 
-// buildConnectionString creates a connection string from environment variables
-func buildConnectionString() string {
-	host := getEnvOrFail("DB_HOST")
-	port := getEnvOrFail("DB_PORT")
-	user := getEnvOrFail("DB_USER")
-	password := getEnvOrFail("DB_PASSWORD")
-	dbname := getEnvOrFail("DB_NAME")
-	
-	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", 
-		user, password, host, port, dbname)
+type TestConfig struct {
+	DBHost     string `envconfig:"DB_HOST" required:"true"`
+	DBPort     string `envconfig:"DB_PORT" required:"true"`
+	DBUser     string `envconfig:"DB_USER" required:"true"`
+	DBPassword string `envconfig:"DB_PASSWORD" required:"true"`
+	DBName     string `envconfig:"DB_NAME" required:"true"`
 }
 
-func getEnvOrFail(key string) string {
-	value := os.Getenv(key)
-	if value == "" {
-		panic(fmt.Sprintf("Environment variable %s is required but not set", key))
+// buildConnectionString creates a connection string from environment variables
+func buildConnectionString() string {
+	var config TestConfig
+	if err := envconfig.Process("", &config); err != nil {
+		panic(fmt.Sprintf("Failed to load test config: %v", err))
 	}
-	return value
+	
+	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", 
+		config.DBUser, config.DBPassword, config.DBHost, config.DBPort, config.DBName)
 }
 
 func init() {
+	// Load .env file for local development - try current directory first, then parent directory
+	if err := godotenv.Load(); err != nil {
+		if err := godotenv.Load("../.env"); err != nil {
+			log.Println("No .env file found in test (this is normal in production)")
+		}
+	}
+	
 	// Build connection string from environment variables
 	connectionStr := buildConnectionString()
+	
+	// Load config for logging (separate from connection string generation to avoid duplicate processing)
+	var config TestConfig
+	if err := envconfig.Process("", &config); err != nil {
+		panic(fmt.Sprintf("Failed to load test config for logging: %v", err))
+	}
+	
 	log.Printf("Using connection string (password hidden): %s", 
 		fmt.Sprintf("postgres://%s:***@%s:%s/%s?sslmode=disable",
-			getEnvOrFail("DB_USER"),
-			getEnvOrFail("DB_HOST"), 
-			getEnvOrFail("DB_PORT"),
-			getEnvOrFail("DB_NAME")))
+			config.DBUser, config.DBHost, config.DBPort, config.DBName))
 	
 	// Register txdb driver for transaction-based testing
 	txdb.Register(transactionDBAlias, transactionDBDriver, connectionStr)

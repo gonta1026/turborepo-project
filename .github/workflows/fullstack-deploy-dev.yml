@@ -2,15 +2,6 @@
 # APIとダッシュボードの変更検出時に自動でdev環境へデプロイ実行
 name: Deploy Full Stack to Dev
 on:
-  # メインブランチへのプッシュでAPI・ダッシュボード・共有パッケージ変更時にトリガー
-  push:
-    branches: [main]
-    paths:
-      - "apps/api/**"
-      - "apps/dashboard/**"
-      - "packages/**" # 共有パッケージ
-      - "package.json" # ルート依存関係
-      - "turbo.json" # Turboビルド設定
   # 手動実行オプション
   workflow_dispatch:
     inputs:
@@ -21,94 +12,19 @@ on:
         default: "Manual full stack deployment to dev environment"
 
 jobs:
-  # ===== フェーズ1: 品質チェック（並列実行） =====
-  # APIテスト（Go + PostgreSQL）
-  test-api:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      # Go環境セットアップ
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: apps/api/go.mod
-          cache: false
-
-      # DBマイグレーションツールのインストール
-      - name: Install golang-migrate
-        run: |
-          curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
-          sudo mv migrate /usr/local/bin/migrate
-          migrate -version
-
-      # テスト用PostgreSQL環境構築
-      - name: PostgreSQL Test Container
-        run: |
-          docker run -d --name postgres-test \
-            -p 5432:5432 \
-            -e POSTGRES_USER=apiuser \
-            -e POSTGRES_PASSWORD=test_password \
-            -e POSTGRES_DB=apidb \
-            postgres:17-alpine
-            
-          # PostgreSQL起動完了まで待機
-          until docker exec postgres-test pg_isready -U apiuser; do
-            echo "Waiting for PostgreSQL..."
-            sleep 2
-          done
-
-      # テストDB用マイグレーション実行
-      - name: Run Database Migrations
-        run: |
-          cd apps/api
-          migrate -path migrations -database "postgres://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable" up
-        env:
-          DB_HOST: 127.0.0.1
-          DB_PORT: 5432
-          DB_USER: apiuser
-          DB_PASSWORD: test_password
-          DB_NAME: apidb
-
-      # API統合テスト実行（全パッケージ）
-      - name: Run API Tests
-        run: |
-          cd apps/api
-          go test -v ./...
-        env:
-          DB_HOST: 127.0.0.1
-          DB_PORT: 5432
-          DB_USER: apiuser
-          DB_PASSWORD: test_password
-          DB_NAME: apidb
-
-  # フロントエンドテスト（React + Vitest）
-  test-dashboard:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      # Node.js環境セットアップ
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22.10.0"
-
-      # NPM依存関係のクリーンインストール
-      - name: Install Dependencies
-        run: |
-          rm -rf node_modules package-lock.json
-          npm install
-
-      # Dashboardコンポーネントテスト実行
-      - name: Run Dashboard Tests
-        run: |
-          npm run test --workspace=dashboard
+  # ===== フェーズ1: 品質チェック（Turborepo + テスト） =====
+  # 再利用可能ワークフローを使用してTurboビルド・テストを実行
+  test:
+    uses: "./.github/workflows/test-reusable.yml"
+    with:
+      test-db-password: "test_password"
+    secrets:
+      turbo-token: ${{ secrets.TURBO_TOKEN }}
 
   # ===== フェーズ2: 本番デプロイ（テスト成功必須） =====
-  # API・Dashboard両方のテストが成功した場合のみ実行される統合デプロイ
+  # Turboビルド・テストが成功した場合のみ実行される統合デプロイ
   deploy:
-    needs: [test-api, test-dashboard] # 両テストジョブの成功が前提条件
+    needs: test # Turboビルド・テストの成功が前提条件
     permissions:
       contents: read # リポジトリ読み取り権限
       id-token: write # OIDC トークン生成権限（Workload Identity用）
