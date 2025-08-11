@@ -17,6 +17,9 @@ jobs:
   turbo-build:
     runs-on: ubuntu-latest
     environment: dev
+    outputs:
+      api-test-needed: ${{ steps.test-changes.outputs.api-test-needed }}
+      dashboard-test-needed: ${{ steps.test-changes.outputs.dashboard-test-needed }}
     steps:
       - uses: actions/checkout@v4
 
@@ -32,23 +35,64 @@ jobs:
           rm -rf node_modules package-lock.json
           npm install
 
-      # Turboリモートキャッシュでビルド・リント実行
-      - name: Build and Lint with Remote Cache
+      # 変更検知: テスト実行対象の決定
+      - name: Detect Changes for Testing
+        id: test-changes
+        run: |
+          echo "🔍 Checking which packages need testing..."
+          
+          # APIテストが必要かチェック
+          if npx turbo-ignore api; then
+            echo "api-test-needed=false" >> $GITHUB_OUTPUT
+            echo "✅ API unchanged - skipping tests"
+          else
+            echo "api-test-needed=true" >> $GITHUB_OUTPUT
+            echo "🔄 API changes detected - running tests"
+          fi
+          
+          # Dashboardテストが必要かチェック
+          if npx turbo-ignore dashboard; then
+            echo "dashboard-test-needed=false" >> $GITHUB_OUTPUT
+            echo "✅ Dashboard unchanged - skipping tests"
+          else
+            echo "dashboard-test-needed=true" >> $GITHUB_OUTPUT
+            echo "🔄 Dashboard changes detected - running tests"
+          fi
+
+      # 選択的ビルド・リント実行
+      - name: Build and Lint Changed Packages
         run: |
           echo "🔍 Debugging Turbo Remote Cache Configuration"
           echo "TURBO_API: $TURBO_API"
           echo "TURBO_TOKEN length: ${#TURBO_TOKEN}"
           echo "Testing server connection..."
           curl -s -w "HTTP Status: %{http_code}\n" "$TURBO_API/v8/artifacts/events" -H "Authorization: Bearer $TURBO_TOKEN" | head -10 || echo "❌ Server connection failed"
-          echo "🚀 Starting Turbo build..."
-          npx turbo run build lint --verbosity=2
+          
+          # 変更されたパッケージのみビルド・リント実行
+          FILTER_PACKAGES=""
+          if [ "${{ steps.test-changes.outputs.api-test-needed }}" == "true" ]; then
+            FILTER_PACKAGES="${FILTER_PACKAGES}api,"
+          fi
+          if [ "${{ steps.test-changes.outputs.dashboard-test-needed }}" == "true" ]; then
+            FILTER_PACKAGES="${FILTER_PACKAGES}dashboard,"
+          fi
+          
+          if [ -n "$FILTER_PACKAGES" ]; then
+            # 末尾のカンマを削除
+            FILTER_PACKAGES=${FILTER_PACKAGES%,}
+            echo "🚀 Running build and lint for: $FILTER_PACKAGES"
+            npx turbo run build lint --filter="$FILTER_PACKAGES" --verbosity=2
+          else
+            echo "✅ No packages need building - all up to date"
+          fi
         env:
           TURBO_API: https://turbo-cache-server-cvezib2f4q-an.a.run.app
           TURBO_TOKEN: ${{ secrets.turbo-token }}
           TURBO_TEAM: my-team
-  # API テスト（Turboビルド完了後に実行）
+  # API テスト（変更検知時のみ実行）
   test-api:
     needs: turbo-build # Turboビルド完了後に実行
+    if: needs.turbo-build.outputs.api-test-needed == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -102,9 +146,10 @@ jobs:
           DB_PASSWORD: ${{ inputs.test-db-password }}
           DB_NAME: apidb
 
-  # Dashboard テスト（Turboビルド完了後に実行）
+  # Dashboard テスト（変更検知時のみ実行）
   test-dashboard:
     needs: turbo-build # Turboビルド完了後に実行
+    if: needs.turbo-build.outputs.dashboard-test-needed == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
