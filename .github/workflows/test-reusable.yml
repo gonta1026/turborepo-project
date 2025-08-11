@@ -22,6 +22,8 @@ jobs:
       dashboard-test-needed: ${{ steps.test-changes.outputs.dashboard-test-needed }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # 前のコミットも取得（turbo-ignoreに必要）
 
       # Node.js環境セットアップ
       - name: Setup Node.js
