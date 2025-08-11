@@ -2,12 +2,15 @@
 # APIとダッシュボードの変更検出時に自動でdev環境へデプロイ実行
 name: Deploy Full Stack to Dev
 on:
-  # メインブランチへのプッシュでAPI・ダッシュボード変更時にトリガー
+  # メインブランチへのプッシュでAPI・ダッシュボード・共有パッケージ変更時にトリガー
   push:
     branches: [main]
     paths:
       - "apps/api/**"
       - "apps/dashboard/**"
+      - "packages/**" # 共有パッケージ
+      - "package.json" # ルート依存関係
+      - "turbo.json" # Turboビルド設定
   # 手動実行オプション
   workflow_dispatch:
     inputs:
@@ -107,8 +110,8 @@ jobs:
   deploy:
     needs: [test-api, test-dashboard] # 両テストジョブの成功が前提条件
     permissions:
-      contents: read      # リポジトリ読み取り権限
-      id-token: write     # OIDC トークン生成権限（Workload Identity用）
+      contents: read # リポジトリ読み取り権限
+      id-token: write # OIDC トークン生成権限（Workload Identity用）
     # 再利用可能ワークフローを呼び出し（実際のデプロイ処理）
     uses: "./.github/workflows/fullstack-deploy-reusable.yml"
     with:
@@ -125,8 +128,8 @@ jobs:
       DASHBOARD_BASE_URL: https://dev.dashboard.my-learn-iac-sample.site
     secrets:
       # 機密情報（GitHub Secrets経由で安全に渡す）
-      db-password: ${{ secrets.DB_PASSWORD }}           # データベースパスワード
-      wif-provider: ${{ secrets.DEV_WIF_PROVIDER }}     # Workload Identity Provider
+      db-password: ${{ secrets.DB_PASSWORD }} # データベースパスワード
+      wif-provider: ${{ secrets.DEV_WIF_PROVIDER }} # Workload Identity Provider
       service-account: ${{ secrets.DEV_SERVICE_ACCOUNT }} # GCPサービスアカウント
       gcs-bucket-name: ${{ secrets.DEV_GCS_BUCKET_NAME }} # フロントエンド用GCSバケット
       cdn-url-map-name: ${{ secrets.DEV_CDN_URL_MAP_NAME }} # CDN URL マップ名
