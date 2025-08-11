@@ -2,15 +2,6 @@
 # APIとダッシュボードの変更検出時に自動でdev環境へデプロイ実行
 name: Deploy Full Stack to Dev
 on:
-  # メインブランチへのプッシュでAPI・ダッシュボード・共有パッケージ変更時にトリガー
-  push:
-    branches: [main]
-    paths:
-      - "apps/api/**"
-      - "apps/dashboard/**"
-      - "packages/**" # 共有パッケージ
-      - "package.json" # ルート依存関係
-      - "turbo.json" # Turboビルド設定
   # 手動実行オプション
   workflow_dispatch:
     inputs:
