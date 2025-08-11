@@ -35,6 +35,12 @@ jobs:
       # Turboリモートキャッシュでビルド・リント実行
       - name: Build and Lint with Remote Cache
         run: |
+          echo "🔍 Debugging Turbo Remote Cache Configuration"
+          echo "TURBO_API: $TURBO_API"
+          echo "TURBO_TOKEN length: ${#TURBO_TOKEN}"
+          echo "Testing server connection..."
+          curl -v "$TURBO_API/v8/artifacts/events" -H "Authorization: Bearer $TURBO_TOKEN" || echo "❌ Server connection failed"
+          echo "🚀 Starting Turbo build..."
           npx turbo run build lint --verbosity=2
         env:
           TURBO_API: https://turbo-cache-server-cvezib2f4q-an.a.run.app
