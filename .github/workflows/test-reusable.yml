@@ -6,8 +6,6 @@ on:
         required: false
         type: string
         description: "Database password for tests"
-    secrets:
-      # シークレットは不要（テスト環境では外部キャッシュを使用しない）
 
 jobs:
   # ===== Turboビルド（モノレポ全体） =====
