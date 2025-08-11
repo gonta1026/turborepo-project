@@ -45,6 +45,7 @@ jobs:
         env:
           TURBO_API: https://turbo-cache-server-cvezib2f4q-an.a.run.app
           TURBO_TOKEN: ${{ secrets.turbo-token }}
+          TURBO_TEAM: my-team
   # API テスト（Turboビルド完了後に実行）
   test-api:
     needs: turbo-build # Turboビルド完了後に実行
