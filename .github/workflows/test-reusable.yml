@@ -68,26 +68,19 @@ jobs:
           echo "Testing server connection..."
           curl -s -w "HTTP Status: %{http_code}\n" "$TURBO_API/v8/artifacts/events?team=$TURBO_TEAM" -H "Authorization: Bearer $TURBO_TOKEN" | head -10 || echo "❌ Server connection failed"
           
-          # 変更されたパッケージのみビルド・リント実行
-          FILTER_PACKAGES=()
+          # 変更されたパッケージごとに個別にビルド・リント実行
           if [ "${{ steps.test-changes.outputs.api-test-needed }}" == "true" ]; then
-            FILTER_PACKAGES+=("api")
-          fi
-          if [ "${{ steps.test-changes.outputs.dashboard-test-needed }}" == "true" ]; then
-            FILTER_PACKAGES+=("dashboard")
+            echo "🚀 Running build and lint for API..."
+            npx turbo run build lint --filter=api --verbosity=2
           fi
           
-          if [ ${#FILTER_PACKAGES[@]} -gt 0 ]; then
-            # 配列を{package1,package2}形式に変換
-            if [ ${#FILTER_PACKAGES[@]} -eq 1 ]; then
-              FILTER_ARG="${FILTER_PACKAGES[0]}"
-            else
-              # 複数パッケージは{package1,package2}形式
-              FILTER_ARG="{$(IFS=,; echo "${FILTER_PACKAGES[*]}")}"
-            fi
-            echo "🚀 Running build and lint for: $FILTER_ARG"
-            npx turbo run build lint --filter="$FILTER_ARG" --verbosity=2
-          else
+          if [ "${{ steps.test-changes.outputs.dashboard-test-needed }}" == "true" ]; then
+            echo "🚀 Running build and lint for Dashboard..."
+            npx turbo run build lint --filter=dashboard --verbosity=2
+          fi
+          
+          # 両方ともfalseの場合
+          if [ "${{ steps.test-changes.outputs.api-test-needed }}" == "false" ] && [ "${{ steps.test-changes.outputs.dashboard-test-needed }}" == "false" ]; then
             echo "✅ No packages need building - all up to date"
           fi
         env:
