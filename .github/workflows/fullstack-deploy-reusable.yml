@@ -97,12 +97,12 @@ jobs:
           
           if [ "${{ steps.turbo-changes.outputs.api-changed }}" == "true" ]; then
             echo "📦 Updating cache for API application..."
-            turbo run build --filter=api
+            npx turbo run build --filter=api
           fi
           
           if [ "${{ steps.turbo-changes.outputs.dashboard-changed }}" == "true" ]; then
             echo "📦 Updating cache for Dashboard application..."
-            turbo run build --filter=dashboard
+            npx turbo run build --filter=dashboard
           fi
           
           echo "✅ Turbo cache update completed"
