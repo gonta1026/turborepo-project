@@ -66,50 +66,7 @@ jobs:
           rm -rf node_modules package-lock.json
           npm install
 
-      # Turborepo変更検知: turbo-ignoreを使用した効率的な変更検知
-      - name: Detect Changes with turbo-ignore
-        id: turbo-changes
-        run: |
-          echo "🔍 Checking for changes using turbo-ignore..."
-
-          # APIアプリケーションの変更チェック
-          if npx turbo-ignore api; then
-            echo "api-changed=false" >> $GITHUB_OUTPUT  
-            echo "✅ API unchanged - skipping deployment"
-          else
-            echo "api-changed=true" >> $GITHUB_OUTPUT
-            echo "🔄 API changes detected - will deploy"
-          fi
-
-          # Dashboardアプリケーションの変更チェック
-          if npx turbo-ignore dashboard; then
-            echo "dashboard-changed=false" >> $GITHUB_OUTPUT
-            echo "✅ Dashboard unchanged - skipping deployment"
-          else
-            echo "dashboard-changed=true" >> $GITHUB_OUTPUT
-            echo "🔄 Dashboard changes detected - will deploy"
-          fi
-
-      # Turborepoキャッシュ更新: 変更されたアプリケーションのビルド結果をキャッシュに保存
-      - name: Update Turbo Cache for Changed Apps
-        run: |
-          echo "🔄 Updating Turborepo cache for changed applications..."
-
-          if [ "${{ steps.turbo-changes.outputs.api-changed }}" == "true" ]; then
-            echo "📦 Updating cache for API application..."
-            npx turbo run build --filter=api
-          fi
-
-          if [ "${{ steps.turbo-changes.outputs.dashboard-changed }}" == "true" ]; then
-            echo "📦 Updating cache for Dashboard application..."
-            npx turbo run build --filter=dashboard
-          fi
-
-          echo "✅ Turbo cache update completed"
-        env:
-          TURBO_API: https://turbo-cache-server-cvezib2f4q-an.a.run.app
-          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-          TURBO_TEAM: my-team
+      # 全アプリケーションを常にデプロイ（条件分岐なし）
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -131,7 +88,6 @@ jobs:
           gcloud auth configure-docker ${{ inputs.REGION }}-docker.pkg.dev
 
       - name: Build API Docker Image
-        if: steps.turbo-changes.outputs.api-changed == 'true'
         run: |
           echo "🔨 Building API Docker image (changes detected)..."
           cd apps/api
@@ -142,20 +98,17 @@ jobs:
             .
 
       - name: Push API Docker Image
-        if: steps.turbo-changes.outputs.api-changed == 'true'
         run: |
           echo "📦 Pushing API Docker image to registry..."
           docker push ${{ inputs.REGION }}-docker.pkg.dev/${{ inputs.PROJECT_ID }}/api-service/api:${{ github.sha }}
           docker push ${{ inputs.REGION }}-docker.pkg.dev/${{ inputs.PROJECT_ID }}/api-service/api:latest
 
       - name: Setup Node.js for Frontend Build
-        if: steps.turbo-changes.outputs.dashboard-changed == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: "22.10.0"
 
       - name: Install Frontend Dependencies
-        if: steps.turbo-changes.outputs.dashboard-changed == 'true'
         run: |
           echo "📦 Installing dashboard dependencies (changes detected)..."
           # クリーンインストールで依存関係の問題を回避
@@ -163,14 +116,12 @@ jobs:
           npm install
 
       - name: Build Frontend
-        if: steps.turbo-changes.outputs.dashboard-changed == 'true'
         run: |
           echo "🔨 Building dashboard (changes detected)..."
           npm run build --workspace=dashboard
 
       # Step 1: API No-Traffic Deploy（変更検知時のみ実行）
       - name: Deploy API (No Traffic)
-        if: steps.turbo-changes.outputs.api-changed == 'true'
         run: |
           echo "🚀 Deploying API service (no traffic)..."
           gcloud run deploy ${{ inputs.API_SERVICE_NAME }} \
@@ -184,7 +135,6 @@ jobs:
 
       # Step 2: Database Migration Check（API変更時のみ実行）
       - name: Check Migration Requirements
-        if: steps.turbo-changes.outputs.api-changed == 'true'
         id: migration-check
         run: |
           if git diff --name-only HEAD~1 HEAD | grep -q "apps/api/migrations/"; then
@@ -196,7 +146,7 @@ jobs:
           fi
 
       - name: Run Database Migration
-        if: steps.turbo-changes.outputs.api-changed == 'true' && steps.migration-check.outputs.migration-required == 'true'
+        if: steps.migration-check.outputs.migration-required == 'true'
         run: |
           echo "🚀 Running database migrations..."
           gcloud run jobs create migration-job-${{ github.sha }} \
@@ -214,29 +164,15 @@ jobs:
 
       # Step 3: API Traffic切り替え + ヘルスチェック（API変更時のみ実行）
       - name: Switch API Traffic
-        if: steps.turbo-changes.outputs.api-changed == 'true'
         run: |
           echo "🔄 Switching API traffic to new revision..."
           gcloud run services update-traffic ${{ inputs.API_SERVICE_NAME }} \
             --region=${{ inputs.REGION }} \
             --to-latest
 
-      - name: API Health Check
-        if: steps.turbo-changes.outputs.api-changed == 'true'
-        run: |
-          echo "🔍 Checking API health..."
-          for i in {1..30}; do
-            if curl -f "${{ inputs.API_BASE_URL }}/health"; then
-              echo "✅ API is healthy!"
-              break
-            fi
-            echo "⏳ Waiting for API to be ready... ($i/30)"
-            sleep 10
-          done
 
-      # Step 4: Frontend Deploy（Dashboard変更時のみ実行）
+      # Step 4: Frontend Deploy（Dashboard変更時のみ実行、apiが実行をされて成功をされたことを確認後にデプロイをする）
       - name: Deploy Frontend to Cloud Storage
-        if: steps.turbo-changes.outputs.dashboard-changed == 'true'
         run: |
           echo "🚀 Deploying frontend to Cloud Storage..."
           # ビルドされたファイルをCloud Storageにアップロード
@@ -245,7 +181,6 @@ jobs:
           echo "✅ Frontend deployed to Cloud Storage"
 
       - name: Invalidate CDN Cache
-        if: steps.turbo-changes.outputs.dashboard-changed == 'true'
         run: |
           echo "🔄 Invalidating CDN cache..."
           gcloud compute url-maps invalidate-cdn-cache ${{ secrets.cdn-url-map-name }} \
@@ -255,13 +190,11 @@ jobs:
 
       # Step 5: 統合ヘルスチェック（変更されたサービスのみ）
       - name: Dashboard Health Check
-        if: steps.turbo-changes.outputs.dashboard-changed == 'true'
         run: |
           echo "🔍 Checking Dashboard health..."
           curl -f "${{ inputs.DASHBOARD_BASE_URL }}"
 
       - name: Basic Integration Check
-        if: steps.turbo-changes.outputs.dashboard-changed == 'true'
         run: |
           echo "🔍 Running basic integration check..."
           # Dashboard画面が正常に表示されることを確認
@@ -276,29 +209,18 @@ jobs:
       # Step 6: デプロイ結果サマリー生成（GitHub Actions Summary出力）
       - name: Deployment Complete
         run: |
-          echo "### 🚀 Selective Deployment Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 Full Stack Deployment Complete!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Environment:** ${{ inputs.ENVIRONMENT }}" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-
-          # 変更検知結果をサマリーに追加
-          if [ "${{ steps.turbo-changes.outputs.api-changed }}" == "true" ]; then
-            echo "**API:** ✅ Changes detected - Deployed" >> $GITHUB_STEP_SUMMARY
-            echo "**API URL:** ${{ inputs.API_BASE_URL }}" >> $GITHUB_STEP_SUMMARY
-            echo "**API Image:** ${{ inputs.REGION }}-docker.pkg.dev/${{ inputs.PROJECT_ID }}/api-service/api:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "**API:** ⏭️ No changes detected - Skipped" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          if [ "${{ steps.turbo-changes.outputs.dashboard-changed }}" == "true" ]; then
-            echo "**Dashboard:** ✅ Changes detected - Deployed" >> $GITHUB_STEP_SUMMARY
-            echo "**Dashboard URL:** ${{ inputs.DASHBOARD_BASE_URL }}" >> $GITHUB_STEP_SUMMARY
-            echo "**Dashboard:** Static files deployed to Cloud Storage" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "**Dashboard:** ⏭️ No changes detected - Skipped" >> $GITHUB_STEP_SUMMARY
-          fi
-
+          echo "**API:** ✅ Deployed" >> $GITHUB_STEP_SUMMARY
+          echo "**API URL:** ${{ inputs.API_BASE_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "**API Image:** ${{ inputs.REGION }}-docker.pkg.dev/${{ inputs.PROJECT_ID }}/api-service/api:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Dashboard:** ✅ Deployed" >> $GITHUB_STEP_SUMMARY
+          echo "**Dashboard URL:** ${{ inputs.DASHBOARD_BASE_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Dashboard:** Static files deployed to Cloud Storage" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Deployed by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
           echo "**Time:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY

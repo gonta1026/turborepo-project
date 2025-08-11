@@ -12,19 +12,9 @@ on:
         default: "Manual full stack deployment to dev environment"
 
 jobs:
-  # ===== フェーズ1: 品質チェック（Turborepo + テスト） =====
-  # 再利用可能ワークフローを使用してTurboビルド・テストを実行
-  test:
-    uses: "./.github/workflows/test-reusable.yml"
-    with:
-      test-db-password: "test_password"
-    secrets:
-      turbo-token: ${{ secrets.TURBO_TOKEN }}
-
-  # ===== フェーズ2: 本番デプロイ（テスト成功必須） =====
-  # Turboビルド・テストが成功した場合のみ実行される統合デプロイ
+  # ===== ダイレクトデプロイ（テストは別のciで事前に実行をする） =====
+  # テスト処理をスキップして直接デプロイを実行
   deploy:
-    needs: test # Turboビルド・テストの成功が前提条件
     permissions:
       contents: read # リポジトリ読み取り権限
       id-token: write # OIDC トークン生成権限（Workload Identity用）

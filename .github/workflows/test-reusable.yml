@@ -7,23 +7,15 @@ on:
         type: string
         description: "Database password for tests"
     secrets:
-      turbo-token:
-        required: true
-        description: "Turborepo remote cache authentication token"
+      # シークレットは不要（テスト環境では外部キャッシュを使用しない）
 
 jobs:
   # ===== Turboビルド（モノレポ全体） =====
-  # Turborepoリモートキャッシュを使用したモノレポ全体のビルド・リント
+  # 全プロジェクトのビルド・リント実行
   turbo-build:
     runs-on: ubuntu-latest
-    environment: dev
-    outputs:
-      api-test-needed: ${{ steps.test-changes.outputs.api-test-needed }}
-      dashboard-test-needed: ${{ steps.test-changes.outputs.dashboard-test-needed }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 2  # 前のコミットも取得（turbo-ignoreに必要）
 
       # Node.js環境セットアップ
       - name: Setup Node.js
@@ -37,62 +29,13 @@ jobs:
           rm -rf node_modules package-lock.json
           npm install
 
-      # 変更検知: テスト実行対象の決定
-      - name: Detect Changes for Testing
-        id: test-changes
+      # 全プロジェクトのビルド・リント実行
+      - name: Build and Lint All Packages
         run: |
-          echo "🔍 Checking which packages need testing..."
-          
-          # APIテストが必要かチェック
-          if npx turbo-ignore api; then
-            echo "api-test-needed=false" >> $GITHUB_OUTPUT
-            echo "✅ API unchanged - skipping tests"
-          else
-            echo "api-test-needed=true" >> $GITHUB_OUTPUT
-            echo "🔄 API changes detected - running tests"
-          fi
-          
-          # Dashboardテストが必要かチェック
-          if npx turbo-ignore dashboard; then
-            echo "dashboard-test-needed=false" >> $GITHUB_OUTPUT
-            echo "✅ Dashboard unchanged - skipping tests"
-          else
-            echo "dashboard-test-needed=true" >> $GITHUB_OUTPUT
-            echo "🔄 Dashboard changes detected - running tests"
-          fi
-
-      # 選択的ビルド・リント実行
-      - name: Build and Lint Changed Packages
-        run: |
-          echo "🔍 Debugging Turbo Remote Cache Configuration"
-          echo "TURBO_API: $TURBO_API"
-          echo "TURBO_TOKEN length: ${#TURBO_TOKEN}"
-          echo "Testing server connection..."
-          curl -s -w "HTTP Status: %{http_code}\n" "$TURBO_API/v8/artifacts/events?team=$TURBO_TEAM" -H "Authorization: Bearer $TURBO_TOKEN" | head -10 || echo "❌ Server connection failed"
-          
-          # 変更されたパッケージごとに個別にビルド・リント実行
-          if [ "${{ steps.test-changes.outputs.api-test-needed }}" == "true" ]; then
-            echo "🚀 Running build and lint for API..."
-            npx turbo run build lint --filter=api --verbosity=2
-          fi
-          
-          if [ "${{ steps.test-changes.outputs.dashboard-test-needed }}" == "true" ]; then
-            echo "🚀 Running build and lint for Dashboard..."
-            npx turbo run build lint --filter=dashboard --verbosity=2
-          fi
-          
-          # 両方ともfalseの場合
-          if [ "${{ steps.test-changes.outputs.api-test-needed }}" == "false" ] && [ "${{ steps.test-changes.outputs.dashboard-test-needed }}" == "false" ]; then
-            echo "✅ No packages need building - all up to date"
-          fi
-        env:
-          TURBO_API: https://turbo-cache-server-cvezib2f4q-an.a.run.app
-          TURBO_TOKEN: ${{ secrets.turbo-token }}
-          TURBO_TEAM: my-team
-  # API テスト（変更検知時のみ実行）
+          echo "🚀 Running build and lint for all packages..."
+          npx turbo run build lint
+  # API テスト（常時実行）
   test-api:
-    needs: turbo-build # Turboビルド完了後に実行
-    if: needs.turbo-build.outputs.api-test-needed == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -146,10 +89,8 @@ jobs:
           DB_PASSWORD: ${{ inputs.test-db-password }}
           DB_NAME: apidb
 
-  # Dashboard テスト（変更検知時のみ実行）
+  # Dashboard テスト（常時実行）
   test-dashboard:
-    needs: turbo-build # Turboビルド完了後に実行
-    if: needs.turbo-build.outputs.dashboard-test-needed == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
