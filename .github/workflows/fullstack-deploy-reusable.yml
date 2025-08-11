@@ -71,7 +71,7 @@ jobs:
         id: turbo-changes
         run: |
           echo "🔍 Checking for changes using turbo-ignore..."
-          
+
           # APIアプリケーションの変更チェック
           if npx turbo-ignore api; then
             echo "api-changed=false" >> $GITHUB_OUTPUT  
@@ -80,7 +80,7 @@ jobs:
             echo "api-changed=true" >> $GITHUB_OUTPUT
             echo "🔄 API changes detected - will deploy"
           fi
-          
+
           # Dashboardアプリケーションの変更チェック
           if npx turbo-ignore dashboard; then
             echo "dashboard-changed=false" >> $GITHUB_OUTPUT
@@ -94,17 +94,17 @@ jobs:
       - name: Update Turbo Cache for Changed Apps
         run: |
           echo "🔄 Updating Turborepo cache for changed applications..."
-          
+
           if [ "${{ steps.turbo-changes.outputs.api-changed }}" == "true" ]; then
             echo "📦 Updating cache for API application..."
             npx turbo run build --filter=api
           fi
-          
+
           if [ "${{ steps.turbo-changes.outputs.dashboard-changed }}" == "true" ]; then
             echo "📦 Updating cache for Dashboard application..."
             npx turbo run build --filter=dashboard
           fi
-          
+
           echo "✅ Turbo cache update completed"
         env:
           TURBO_API: https://turbo-cache-server-cvezib2f4q-an.a.run.app
@@ -281,7 +281,7 @@ jobs:
           echo "**Environment:** ${{ inputs.ENVIRONMENT }}" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           # 変更検知結果をサマリーに追加
           if [ "${{ steps.turbo-changes.outputs.api-changed }}" == "true" ]; then
             echo "**API:** ✅ Changes detected - Deployed" >> $GITHUB_STEP_SUMMARY
@@ -290,7 +290,7 @@ jobs:
           else
             echo "**API:** ⏭️ No changes detected - Skipped" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           if [ "${{ steps.turbo-changes.outputs.dashboard-changed }}" == "true" ]; then
             echo "**Dashboard:** ✅ Changes detected - Deployed" >> $GITHUB_STEP_SUMMARY
             echo "**Dashboard URL:** ${{ inputs.DASHBOARD_BASE_URL }}" >> $GITHUB_STEP_SUMMARY
@@ -298,7 +298,7 @@ jobs:
           else
             echo "**Dashboard:** ⏭️ No changes detected - Skipped" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Deployed by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
           echo "**Time:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY
