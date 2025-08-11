@@ -66,32 +66,29 @@ jobs:
           rm -rf node_modules package-lock.json
           npm install
 
-      # Turborepo変更検知: 各アプリケーションの変更を個別に検知
-      - name: Detect Changes with Turbo
+      # Turborepo変更検知: turbo-ignoreを使用した効率的な変更検知
+      - name: Detect Changes with turbo-ignore
         id: turbo-changes
         run: |
-          echo "🔍 Checking for changes using Turborepo..."
+          echo "🔍 Checking for changes using turbo-ignore..."
           
           # APIアプリケーションの変更チェック
-          if npx turbo run build --filter=api --dry-run=json | jq -r '.tasks[] | select(.package == "api") | .cache.status' | grep -q "MISS"; then
-            echo "api-changed=true" >> $GITHUB_OUTPUT
-            echo "🔄 API changes detected - will deploy"
-          else
+          if npx turbo-ignore api; then
             echo "api-changed=false" >> $GITHUB_OUTPUT  
             echo "✅ API unchanged - skipping deployment"
+          else
+            echo "api-changed=true" >> $GITHUB_OUTPUT
+            echo "🔄 API changes detected - will deploy"
           fi
           
           # Dashboardアプリケーションの変更チェック
-          if npx turbo run build --filter=dashboard --dry-run=json | jq -r '.tasks[] | select(.package == "dashboard") | .cache.status' | grep -q "MISS"; then
-            echo "dashboard-changed=true" >> $GITHUB_OUTPUT
-            echo "🔄 Dashboard changes detected - will deploy"
-          else
+          if npx turbo-ignore dashboard; then
             echo "dashboard-changed=false" >> $GITHUB_OUTPUT
             echo "✅ Dashboard unchanged - skipping deployment"
+          else
+            echo "dashboard-changed=true" >> $GITHUB_OUTPUT
+            echo "🔄 Dashboard changes detected - will deploy"
           fi
-          
-          echo "📋 Turbo analysis:"
-          npx turbo run build --filter=api,dashboard --dry-run=json | jq -r '.tasks[] | "\(.package): \(.cache.status)"'
 
       # Turborepoキャッシュ更新: 変更されたアプリケーションのビルド結果をキャッシュに保存
       - name: Update Turbo Cache for Changed Apps
