@@ -35,7 +35,7 @@ jobs:
       # Turboリモートキャッシュでビルド・リント実行
       - name: Build and Lint with Remote Cache
         run: |
-          npx turbo run build lint
+          npx turbo run build lint --verbosity=2
         env:
           TURBO_API: https://turbo-cache-server-cvezib2f4q-an.a.run.app
           TURBO_TOKEN: ${{ secrets.turbo-token }}
