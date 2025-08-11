@@ -17,7 +17,7 @@ export const Home = () => {
       <Header title="Dashboard - Home" />
 
       <div className="content">
-        <h2>Welcome to the Home Page_2</h2>
+        <h2>Welcome to the Home Page</h2>
         <p>This is the main dashboard where you can interact with the counter.</p>
 
         <div className="card">
