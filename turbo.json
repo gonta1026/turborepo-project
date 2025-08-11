@@ -1,58 +1,58 @@
 {
-	"$schema": "https://turborepo.com/schema.json",
-	"tasks": {
-		"build": {
-			"dependsOn": ["^build"],
-			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": ["dist/**", "bin/**"]
-		},
-		"format-and-lint": {
-			"cache": false
-		},
-		"format-and-lint:fix": {
-			"cache": false
-		},
-		"dev": {
-			"cache": false,
-			"persistent": true
-		},
-		"start": {
-			"dependsOn": ["build"],
-			"cache": false
-		},
-		"test": {
-			"cache": false
-		},
-		"lint": {
-			"cache": false
-		},
-		"biome:check": {
-			"dependsOn": ["^biome:check"],
-			"cache": false
-		},
-		"biome:fix": {
-			"dependsOn": ["^biome:fix"],
-			"cache": false
-		},
-		"clean": {
-			"cache": false
-		},
-		"terraform:format": {
-			"cache": false
-		},
-		"terraform:validate": {
-			"cache": false
-		},
-		"terraform:plan": {
-			"cache": false,
-			"dependsOn": ["terraform:validate"]
-		},
-		"terraform:apply": {
-			"cache": false,
-			"dependsOn": ["terraform:plan"]
-		},
-		"terraform:destroy": {
-			"cache": false
-		}
-	}
+  "$schema": "https://turborepo.com/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": ["dist/**", "bin/**"]
+    },
+    "format-and-lint": {
+      "cache": false
+    },
+    "format-and-lint:fix": {
+      "cache": false
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "start": {
+      "dependsOn": ["build"],
+      "cache": false
+    },
+    "test": {
+      "cache": false
+    },
+    "lint": {
+      "cache": false
+    },
+    "biome:check": {
+      "dependsOn": ["^biome:check"],
+      "cache": false
+    },
+    "biome:fix": {
+      "dependsOn": ["^biome:fix"],
+      "cache": false
+    },
+    "clean": {
+      "cache": false
+    },
+    "terraform:format": {
+      "cache": false
+    },
+    "terraform:validate": {
+      "cache": false
+    },
+    "terraform:plan": {
+      "cache": false,
+      "dependsOn": ["terraform:validate"]
+    },
+    "terraform:apply": {
+      "cache": false,
+      "dependsOn": ["terraform:plan"]
+    },
+    "terraform:destroy": {
+      "cache": false
+    }
+  }
 }
