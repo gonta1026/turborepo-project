@@ -3,10 +3,13 @@
   "remoteCache": {
     "enabled": true
   },
+  "globalDependencies": [
+    "!.github/**"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$"],
+      "inputs": ["$TURBO_DEFAULT$", "!.github/**"],
       "outputs": ["dist/**", "bin/**"]
     },
 
