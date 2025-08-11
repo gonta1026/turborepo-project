@@ -26,7 +26,7 @@ export const Home = () => {
 
         <nav className="navigation">
           <Link to="/about" className="nav-link">
-            Go to About Page
+            Go to About Page-----------
           </Link>
         </nav>
       </div>
