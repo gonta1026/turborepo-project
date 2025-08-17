@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite --clearScreen false",
     "build": "tsc && vite build",
+    "build:dev": "vite build --mode dev",
+    "build:prod": "vite build --mode production",
     "preview": "vite preview",
     "format-and-lint": "biome check .",
     "format-and-lint:fix": "biome check . --write",

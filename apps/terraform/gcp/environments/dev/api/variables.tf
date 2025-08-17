@@ -39,3 +39,9 @@ variable "database_user" {
   type        = string
   default     = "api_user"
 }
+
+# CORS Configuration
+variable "dashboard_client_url" {
+  description = "Dashboard client URL for CORS (e.g., https://dev.dashboard.my-learn-iac-sample.site)"
+  type        = string
+}

@@ -17,3 +17,6 @@ api_domain_name = "dev.api.my-learn-iac-sample.site"
 # Database Configuration
 database_name = "api_db"
 database_user = "api_user"
+
+# CORS Configuration
+dashboard_client_url = "https://dev.dashboard.my-learn-iac-sample.site"

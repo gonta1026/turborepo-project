@@ -58,7 +58,12 @@ make migrate-up
 ### 開発サーバーの起動
 
 ```bash
-# Docker環境と一緒に起動
+# ホットリロード付きで起動（推奨）
+make dev
+# または
+npm run dev
+
+# Docker環境と一緒に起動（通常の実行）
 make run-with-docker
 
 # または直接実行
