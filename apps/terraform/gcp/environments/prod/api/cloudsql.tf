@@ -69,7 +69,7 @@ resource "google_sql_database_instance" "api_db_instance" {
       record_application_tags = false
       record_client_address   = false
     }
-
+    
     # IAM認証有効化（パスワード認証と併用）
     database_flags {
       name  = "cloudsql.iam_authentication"
@@ -103,4 +103,25 @@ resource "google_sql_user" "api_user" {
   name     = var.database_user
   instance = google_sql_database_instance.api_db_instance.name
   password = random_password.db_password.result
+}
+
+# ======================================
+# Secret Manager for Database Password
+# ======================================
+
+# Database password stored in Secret Manager
+resource "google_secret_manager_secret" "db_password" {
+  secret_id = "api-db-password"
+
+  replication {
+    auto {}
+  }
+
+  labels = var.labels
+}
+
+# Secret version
+resource "google_secret_manager_secret_version" "db_password" {
+  secret      = google_secret_manager_secret.db_password.id
+  secret_data = random_password.db_password.result
 }

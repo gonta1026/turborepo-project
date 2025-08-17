@@ -69,7 +69,7 @@ resource "google_sql_database_instance" "api_db_instance" {
       record_application_tags = false
       record_client_address   = false
     }
-    
+
     # IAM認証有効化（パスワード認証と併用）
     database_flags {
       name  = "cloudsql.iam_authentication"
