@@ -147,20 +147,9 @@ jobs:
             --set-secrets="DB_PASSWORD=api-db-password:latest" \
             --service-account=api-cloud-run-sa@${{ inputs.PROJECT_ID }}.iam.gserviceaccount.com
 
-      # Step 2: Database Migration Check（API変更時のみ実行）
-      - name: Check Migration Requirements
-        id: migration-check
-        run: |
-          if git diff --name-only HEAD~1 HEAD | grep -q "apps/api/migrations/"; then
-            echo "migration-required=true" >> $GITHUB_OUTPUT
-            echo "🔄 Database migration files detected"
-          else
-            echo "migration-required=false" >> $GITHUB_OUTPUT
-            echo "✅ No migration files changed"
-          fi
-
+      # Step 2: Database Migration（常に実行）
       - name: Run Database Migration
-        if: steps.migration-check.outputs.migration-required == 'true'
+        # migration-required条件を削除し、常に実行するように変更
         run: |
           echo "🚀 Running database migrations..."
           gcloud run jobs create migration-job-${{ github.sha }} \
