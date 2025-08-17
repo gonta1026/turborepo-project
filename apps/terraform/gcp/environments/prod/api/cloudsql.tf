@@ -4,10 +4,10 @@
 # セキュアなプライベートCloud SQLインスタンスの構築
 # パブリックIPを完全に無効化し、VPC内部からのみアクセス可能
 
-# Generate random password for database user
+# Generate random password for database user (URL-safe characters only)
 resource "random_password" "db_password" {
   length  = 32
-  special = true
+  special = false # URL問題のある特殊文字を除外
 }
 
 # Cloud SQL Instance (Private)
@@ -69,7 +69,7 @@ resource "google_sql_database_instance" "api_db_instance" {
       record_application_tags = false
       record_client_address   = false
     }
-    
+
     # IAM認証有効化（パスワード認証と併用）
     database_flags {
       name  = "cloudsql.iam_authentication"
