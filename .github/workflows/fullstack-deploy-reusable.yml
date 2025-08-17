@@ -30,10 +30,10 @@ on:
         required: true
         type: string
         description: "API base URL"
-      DASHBOARD_BASE_URL:
+      DASHBOARD_CLIENT_URL:
         required: true
         type: string
-        description: "Dashboard base URL"
+        description: "Dashboard client URL for CORS"
       DB_HOST:
         required: true
         type: string
@@ -143,7 +143,7 @@ jobs:
             --region=${{ inputs.REGION }} \
             --no-traffic \
             --vpc-connector=${{ inputs.VPC_CONNECTOR_NAME }} \
-            --set-env-vars="DB_HOST=${{ inputs.DB_HOST }},DB_USER=${{ inputs.DB_USER }},DB_NAME=${{ inputs.DB_NAME }},DB_PORT=5432,DASHBOARD_BASE_URL=${{ inputs.DASHBOARD_BASE_URL }}" \
+            --set-env-vars="DB_HOST=${{ inputs.DB_HOST }},DB_USER=${{ inputs.DB_USER }},DB_NAME=${{ inputs.DB_NAME }},DB_PORT=5432,DASHBOARD_CLIENT_URL=${{ inputs.DASHBOARD_CLIENT_URL }}" \
             --set-secrets="DB_PASSWORD=api-db-password:latest" \
             --service-account=api-cloud-run-sa@${{ inputs.PROJECT_ID }}.iam.gserviceaccount.com
 
@@ -195,13 +195,13 @@ jobs:
       - name: Dashboard Health Check
         run: |
           echo "🔍 Checking Dashboard health..."
-          curl -f "${{ inputs.DASHBOARD_BASE_URL }}"
+          curl -f "${{ inputs.DASHBOARD_CLIENT_URL }}"
 
       - name: Basic Integration Check
         run: |
           echo "🔍 Running basic integration check..."
           # Dashboard画面が正常に表示されることを確認
-          if curl -s "${{ inputs.DASHBOARD_BASE_URL }}" | grep -q "<!doctype html>"; then
+          if curl -s "${{ inputs.DASHBOARD_CLIENT_URL }}" | grep -q "<!doctype html>"; then
             echo "✅ Dashboard is serving content successfully"
           else
             echo "❌ Dashboard integration check failed"
@@ -222,7 +222,7 @@ jobs:
           echo "**API Image:** ${{ inputs.REGION }}-docker.pkg.dev/${{ inputs.PROJECT_ID }}/api-service/api:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Dashboard:** ✅ Deployed" >> $GITHUB_STEP_SUMMARY
-          echo "**Dashboard URL:** ${{ inputs.DASHBOARD_BASE_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Dashboard URL:** ${{ inputs.DASHBOARD_CLIENT_URL }}" >> $GITHUB_STEP_SUMMARY
           echo "**Dashboard:** Static files deployed to Cloud Storage" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Deployed by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY

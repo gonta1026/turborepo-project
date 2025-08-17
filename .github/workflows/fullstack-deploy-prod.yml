@@ -41,7 +41,7 @@ jobs:
       DASHBOARD_SERVICE_NAME: dashboard-service
       # 公開URL
       API_BASE_URL: https://api.my-learn-iac-sample.site
-      DASHBOARD_BASE_URL: https://dashboard.my-learn-iac-sample.site
+      DASHBOARD_CLIENT_URL: https://dashboard.my-learn-iac-sample.site
       # データベース接続情報（terraform outputから取得）
       DB_HOST: "10.83.0.3"
       DB_USER: "api_user"

@@ -31,7 +31,7 @@ jobs:
       DASHBOARD_SERVICE_NAME: dashboard-service
       # 公開URL
       API_BASE_URL: https://dev.api.my-learn-iac-sample.site
-      DASHBOARD_BASE_URL: https://dev.dashboard.my-learn-iac-sample.site
+      DASHBOARD_CLIENT_URL: https://dev.dashboard.my-learn-iac-sample.site
       # データベース接続情報
       DB_HOST: "10.71.0.5"
       DB_USER: "api_user" 
