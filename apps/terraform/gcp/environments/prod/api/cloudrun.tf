@@ -148,7 +148,15 @@ resource "google_project_iam_member" "api_cloud_run_sql_client" {
 # IAM Policies
 # ======================================
 
-# 本番環境：Load Balancerからのアクセスのみ許可（パブリックアクセス無効）
+# 本番環境：パブリックアクセス許可（Load Balancer経由アクセス用）
+resource "google_cloud_run_v2_service_iam_member" "api_service_public_access" {
+  location = google_cloud_run_v2_service.api_service.location
+  name     = google_cloud_run_v2_service.api_service.name
+  role     = "roles/run.invoker"
+  member   = "allUsers"
+}
+
+# 本番環境：Load Balancerからのアクセスのみ許可（将来の制限用）
 # 注意：Load Balancer設定完了後にこの設定を有効化してください
 # resource "google_cloud_run_v2_service_iam_member" "api_service_lb_access" {
 #   location = google_cloud_run_v2_service.api_service.location

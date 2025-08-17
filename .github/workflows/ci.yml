@@ -3,12 +3,7 @@
 name: Continuous Integration
 
 on:
-  push:
-    branches-ignore:
-      - main # main以外の全ブランチでトリガー
   pull_request:
-    branches:
-      - main
 
 jobs:
   # ===== 品質チェック（Turborepo + テスト） =====
