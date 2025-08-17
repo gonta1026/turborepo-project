@@ -1,0 +1,23 @@
+# GCP Project Configuration - Production API Service
+project_id = "terraform-gcp-prod-468022"
+
+# Region and Zone Configuration - Asia Northeast (Tokyo)
+region = "asia-northeast1"
+zone   = "asia-northeast1-a"
+
+# Labels for Production API resources
+labels = {
+  environment = "production"
+  service     = "api"
+  managed_by  = "terraform"
+}
+
+# API Domain Configuration
+api_domain_name = "api.my-learn-iac-sample.site"
+
+# Database Configuration
+database_name = "api_db"
+database_user = "api_user"
+
+# CORS Configuration
+dashboard_client_url = "https://dashboard.my-learn-iac-sample.site"
