@@ -88,3 +88,11 @@ resource "google_project_iam_member" "github_actions_compute_network_admin" {
   role    = "roles/compute.networkAdmin"
   member  = "serviceAccount:${google_service_account.github_actions_deployer.email}"
 }
+
+# GitHub ActionsサービスアカウントにSecret Manager権限を付与
+# マイグレーション時のSecret Manager アクセスに必要
+resource "google_project_iam_member" "github_actions_secret_manager_accessor" {
+  project = var.project_id
+  role    = "roles/secretmanager.secretAccessor"
+  member  = "serviceAccount:${google_service_account.github_actions_deployer.email}"
+}

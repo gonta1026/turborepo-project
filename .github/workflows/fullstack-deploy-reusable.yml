@@ -149,20 +149,21 @@ jobs:
 
       # Step 2: Database Migration（常に実行）
       - name: Run Database Migration
-        # migration-required条件を削除し、常に実行するように変更
         run: |
           echo "🚀 Running database migrations..."
-          gcloud run jobs create migration-job-${{ github.sha }} \
+          JOB_NAME="migration-job-$(date +%s)"
+          
+          gcloud run jobs create $JOB_NAME \
             --image=${{ inputs.REGION }}-docker.pkg.dev/${{ inputs.PROJECT_ID }}/api-service/api:${{ github.sha }} \
             --region=${{ inputs.REGION }} \
             --vpc-connector=${{ inputs.VPC_CONNECTOR_NAME }} \
             --set-env-vars="DB_HOST=${{ inputs.DB_HOST }},DB_USER=${{ inputs.DB_USER }},DB_NAME=${{ inputs.DB_NAME }},DB_PORT=5432" \
             --set-secrets="DB_PASSWORD=api-db-password:latest" \
             --service-account=api-cloud-run-sa@${{ inputs.PROJECT_ID }}.iam.gserviceaccount.com \
-            --command="migrate" \
-            --args="-path,migrations,-database,postgres://${{ inputs.DB_USER }}:$(gcloud secrets versions access latest --secret=api-db-password)@${{ inputs.DB_HOST }}:5432/${{ inputs.DB_NAME }}?sslmode=require,up"
-            
-          gcloud run jobs execute migration-job-${{ github.sha }} --wait --region=${{ inputs.REGION }}
+            --command="sh" \
+            --args="-c","migrate -path migrations -database \"postgres://\$DB_USER:\$DB_PASSWORD@\$DB_HOST:5432/\$DB_NAME?sslmode=require\" up"
+          
+          gcloud run jobs execute $JOB_NAME --wait --region=${{ inputs.REGION }}
           echo "✅ Database migrations completed"
 
       # Step 3: API Traffic切り替え + ヘルスチェック（API変更時のみ実行）
