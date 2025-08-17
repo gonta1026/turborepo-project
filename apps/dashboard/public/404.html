@@ -1,24 +1,14 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Loading...</title>
-</head>
-<body>
-  <div id="loading">Loading...</div>
-  
-  <script>
-    // SPAルーティング用の404ハンドリング
-    // 現在のパスを取得
-    const currentPath = window.location.pathname;
-    
-    // ルートページにリダイレクトして、React Routerに処理を委ねる
-    // 状態を保持するためにsessionStorageを使用
-    sessionStorage.setItem('spa_redirect_path', currentPath);
-    
-    // index.htmlにリダイレクト
-    window.location.replace('/');
-  </script>
-</body>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vite + React</title>
+    <script type="module" crossorigin src="/assets/index-Dxbq0aUs.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CTiJ6jWS.css">
+  </head>
+  <body>
+    <div id="app"></div>
+  </body>
 </html>
