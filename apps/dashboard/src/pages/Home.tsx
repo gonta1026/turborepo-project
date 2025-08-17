@@ -28,6 +28,9 @@ export const Home = () => {
           <Link to="/about" className="nav-link">
             Go to About_Page
           </Link>
+          <Link to="/todos" className="nav-link">
+            Go to TODO Manager
+          </Link>
         </nav>
       </div>
     </div>

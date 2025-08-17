@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Go API server with Gin framework",
   "scripts": {
-    "dev": "go run main.go",
+    "dev": "go run -mod=readonly github.com/air-verse/air@latest",
     "build": "go build -o bin/api main.go",
     "start": "./bin/api",
     "clean": "rm -rf bin/",

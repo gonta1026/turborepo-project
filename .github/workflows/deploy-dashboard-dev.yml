@@ -37,6 +37,8 @@ jobs:
           npm install
 
       - name: Build dashboard
+        env:
+          VITE_API_BASE_URL: https://dev.api.my-learn-iac-sample.site/api/v1
         run: npm run build --workspace=dashboard
 
       - name: Authenticate to Google Cloud

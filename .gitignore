@@ -5,7 +5,10 @@ node_modules
 dist
 dist-ssr
 *.local
+# Environment variables
 .env
+.env.*
+!.env.example
 .cache
 server/dist
 public/dist
@@ -16,3 +19,4 @@ docs/
 CLAUDE.md
 start.md
 .envrc
+tmp/

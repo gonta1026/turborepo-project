@@ -1,4 +1,4 @@
-.PHONY: migrate-up migrate-down migrate-create docker-up docker-down test
+.PHONY: migrate-up migrate-down migrate-create docker-up docker-down test dev
 
 # Migration commands (ローカル開発用 - ハードコーディング)
 
@@ -24,3 +24,7 @@ run-with-docker: docker-up
 
 test:
 	go test -v ./...
+
+# Development with hot reload (requires Air to be installed)
+dev: docker-up
+	air

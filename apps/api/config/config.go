@@ -14,12 +14,12 @@ type Config struct {
 	DBName     string `envconfig:"DB_NAME" required:"true"`
 	DBSSLMode  string `envconfig:"DB_SSLMODE" default:"disable"`
 	
-	// Cloud SQL specific
-	UseCloudSQL      bool   `envconfig:"USE_CLOUD_SQL" default:"false"`
-	CloudSQLInstance string `envconfig:"CLOUD_SQL_INSTANCE" default:""`
 	
 	// Environment
 	Environment string `envconfig:"ENVIRONMENT" default:"development"`
+	
+	// CORS settings
+	DashboardClientURL string `envconfig:"DASHBOARD_CLIENT_URL" default:"http://localhost:5173"`
 }
 
 func Load() (*Config, error) {
@@ -33,18 +33,6 @@ func Load() (*Config, error) {
 }
 
 func (c *Config) GetDSN() string {
-	if c.UseCloudSQL {
-		// Cloud SQL接続用のDSN
-		return fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=%s",
-			c.CloudSQLInstance,
-			c.DBUser,
-			c.DBPassword,
-			c.DBName,
-			c.DBSSLMode,
-		)
-	}
-	
-	// 通常のPostgreSQL接続用のDSN
 	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		c.DBHost,
 		c.DBPort,

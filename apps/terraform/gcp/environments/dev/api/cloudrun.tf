@@ -82,6 +82,16 @@ resource "google_cloud_run_v2_service" "api_service" {
         name  = "PROJECT_ID"
         value = var.project_id
       }
+
+      env {
+        name  = "DASHBOARD_CLIENT_URL"
+        value = var.dashboard_client_url
+      }
+
+      env {
+        name  = "ENVIRONMENT"
+        value = "development"
+      }
     }
 
     # Scaling configuration
