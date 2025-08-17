@@ -69,7 +69,7 @@ resource "google_sql_database_instance" "api_db_instance" {
       record_application_tags = false
       record_client_address   = false
     }
-    
+
     # IAM認証有効化（パスワード認証と併用）
     database_flags {
       name  = "cloudsql.iam_authentication"
@@ -82,4 +82,25 @@ resource "google_sql_database_instance" "api_db_instance" {
 
   # sharedのプライベートサービス接続とAPI有効化に依存
   depends_on = [data.terraform_remote_state.shared]
+}
+
+# ======================================
+# Database and User Configuration
+# ======================================
+
+# Database
+resource "google_sql_database" "api_database" {
+  name     = var.database_name
+  instance = google_sql_database_instance.api_db_instance.name
+
+  # 文字セット設定（UTF-8）
+  charset   = "UTF8"
+  collation = "en_US.UTF8"
+}
+
+# Database User (Password-based)
+resource "google_sql_user" "api_user" {
+  name     = var.database_user
+  instance = google_sql_database_instance.api_db_instance.name
+  password = random_password.db_password.result
 }
