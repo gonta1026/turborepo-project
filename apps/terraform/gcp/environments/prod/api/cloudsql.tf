@@ -16,21 +16,21 @@ resource "google_sql_database_instance" "api_db_instance" {
   database_version = "POSTGRES_17"
   region           = var.region
 
-  # インスタンス削除保護（本番運用時は有効化推奨）
-  deletion_protection = false # 開発環境では無効化
+  # インスタンス削除保護（本番運用では有効化）
+  deletion_protection = true
 
   settings {
-    # マシンタイプ（開発環境用の小さなインスタンス）
+    # マシンタイプ（学習用の小さなインスタンス、実際の本番では db-n1-standard-2 以上推奨）
     tier = "db-g1-small"
 
-    # 可用性設定
-    availability_type = "ZONAL" # 開発環境用（本番ではREGIONAL推奨）
+    # 可用性設定（学習用はZONAL、実際の本番では REGIONAL 推奨）
+    availability_type = "ZONAL"
 
-    # ディスク設定
+    # ディスク設定（学習用の最小サイズ、実際の本番では初期50GB以上推奨）
     disk_type             = "PD_SSD"
-    disk_size             = 10 # GB（開発環境用の最小サイズ）
+    disk_size             = 10 # GB
     disk_autoresize       = true
-    disk_autoresize_limit = 100 # GB
+    disk_autoresize_limit = 100 # GB（実際の本番では500GB以上推奨）
 
     # バックアップ設定
     backup_configuration {
@@ -69,7 +69,7 @@ resource "google_sql_database_instance" "api_db_instance" {
       record_application_tags = false
       record_client_address   = false
     }
-
+    
     # IAM認証有効化（パスワード認証と併用）
     database_flags {
       name  = "cloudsql.iam_authentication"
@@ -103,14 +103,6 @@ resource "google_sql_user" "api_user" {
   name     = var.database_user
   instance = google_sql_database_instance.api_db_instance.name
   password = random_password.db_password.result
-}
-
-# IAM Database User
-# dev_team_groupのメンバーがIAM認証でアクセス可能
-resource "google_sql_user" "dev_team_iam_user" {
-  name     = data.terraform_remote_state.shared.outputs.dev_team_group
-  instance = google_sql_database_instance.api_db_instance.name
-  type     = "CLOUD_IAM_GROUP"
 }
 
 # ======================================

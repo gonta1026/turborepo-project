@@ -32,6 +32,10 @@ jobs:
       # 公開URL
       API_BASE_URL: https://dev.api.my-learn-iac-sample.site
       DASHBOARD_BASE_URL: https://dev.dashboard.my-learn-iac-sample.site
+      # データベース接続情報
+      DB_HOST: "10.71.0.5"
+      DB_USER: "api_user" 
+      DB_NAME: "api_db"
     secrets:
       # 機密情報（GitHub Secrets経由で安全に渡す）
       db-password: ${{ secrets.DB_PASSWORD }} # データベースパスワード
