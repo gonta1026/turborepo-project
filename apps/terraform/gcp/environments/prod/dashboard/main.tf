@@ -13,7 +13,7 @@ resource "google_storage_bucket" "dashboard_frontend" {
   # 静的ウェブサイトホスティング用の設定
   website {
     main_page_suffix = "index.html"
-    not_found_page   = "index.html"
+    not_found_page   = "404.html"
   }
 
   # セキュリティ設定
@@ -53,22 +53,11 @@ resource "google_compute_backend_bucket" "dashboard_frontend" {
 }
 
 # URLマップ
+# シンプルな設定でCloud Storageのnot_found_pageに依存  
 resource "google_compute_url_map" "dashboard_frontend" {
   name            = "dashboard-frontend-url-map"
-  description     = "Dashboard Frontend URL Map"
+  description     = "Dashboard Frontend URL Map with SPA support"
   default_service = google_compute_backend_bucket.dashboard_frontend.self_link
-
-  # ホストルール
-  host_rule {
-    hosts        = [var.domain_name]
-    path_matcher = "dashboard-frontend-paths"
-  }
-
-  # パスマッチャー
-  path_matcher {
-    name            = "dashboard-frontend-paths"
-    default_service = google_compute_backend_bucket.dashboard_frontend.self_link
-  }
 }
 
 # ======================================

@@ -142,10 +142,7 @@ jobs:
             --image=${{ inputs.REGION }}-docker.pkg.dev/${{ inputs.PROJECT_ID }}/api-service/api:${{ github.sha }} \
             --region=${{ inputs.REGION }} \
             --no-traffic \
-            --vpc-connector=${{ inputs.VPC_CONNECTOR_NAME }} \
-            --set-env-vars="DB_HOST=${{ inputs.DB_HOST }},DB_USER=${{ inputs.DB_USER }},DB_NAME=${{ inputs.DB_NAME }},DB_PORT=5432,DASHBOARD_CLIENT_URL=${{ inputs.DASHBOARD_CLIENT_URL }}" \
-            --set-secrets="DB_PASSWORD=api-db-password:latest" \
-            --service-account=api-cloud-run-sa@${{ inputs.PROJECT_ID }}.iam.gserviceaccount.com
+            --vpc-connector=${{ inputs.VPC_CONNECTOR_NAME }}
 
       # Step 2: Database Migration（常に実行）
       - name: Run Database Migration

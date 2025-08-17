@@ -38,7 +38,7 @@ resource "google_storage_bucket" "website_bucket" {
   # 静的ウェブサイトホスティング用の設定
   website {
     main_page_suffix = "index.html"
-    not_found_page   = "index.html"
+    not_found_page   = "404.html"
   }
 
   # パブリックアクセス用の設定
@@ -97,15 +97,11 @@ resource "google_compute_backend_bucket" "website_backend" {
 # ======================================
 
 # URL Map for routing
-# ロードバランサーでのトラフィック振り分けルールを定義
-# 全てのHTTP/HTTPSリクエストをCloud Storageバケットに転送する設定
-# パスベースやホストベースの詳細なルーティングルールの基盤となる
+# シンプルな設定でCloud Storageのnot_found_pageに依存
 resource "google_compute_url_map" "website_url_map" {
   name            = "dashboard-url-map"
   default_service = google_compute_backend_bucket.website_backend.id
-  description     = "URL map for dashboard static website"
-  # シンプルな設定でまず動作確認
-  # デフォルトですべてのトラフィックをbackend bucketに転送
+  description     = "URL map for dashboard static website with SPA support"
 }
 
 # HTTP to HTTPS redirect URL Map
