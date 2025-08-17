@@ -28,8 +28,13 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
 # Stage 2: Production stage
 FROM alpine:latest
 
-# Install ca-certificates for HTTPS calls
-RUN apk --no-cache add ca-certificates
+# Install ca-certificates for HTTPS calls and golang-migrate tool
+RUN apk --no-cache add ca-certificates wget && \
+    wget -O /tmp/migrate.tar.gz https://github.com/golang-migrate/migrate/releases/latest/download/migrate.linux-amd64.tar.gz && \
+    tar -xzf /tmp/migrate.tar.gz -C /tmp && \
+    mv /tmp/migrate /usr/local/bin/migrate && \
+    rm /tmp/migrate.tar.gz && \
+    chmod +x /usr/local/bin/migrate
 
 # Create app directory
 WORKDIR /root/
