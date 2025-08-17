@@ -1,0 +1,55 @@
+# フルスタックアプリケーション本番環境デプロイワークフロー
+# mainブランチへのマージ時に自動でprod環境へデプロイ実行
+name: Deploy Full Stack to Production
+
+on:
+  # mainブランチへのプッシュ（マージ）時に自動実行
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/api/**'
+      - 'apps/dashboard/**'
+      - '.github/workflows/**'
+
+  # 手動実行オプション
+  workflow_dispatch:
+    inputs:
+      message:
+        description: "Deployment message"
+        required: false
+        type: string
+        default: "Manual full stack deployment to prod environment"
+
+jobs:
+  # ===== 本番デプロイ =====
+  # 本番環境への慎重なデプロイを実行
+  deploy:
+    permissions:
+      contents: read # リポジトリ読み取り権限
+      id-token: write # OIDC トークン生成権限（Workload Identity用）
+    # 再利用可能ワークフローを呼び出し（実際のデプロイ処理）
+    uses: "./.github/workflows/fullstack-deploy-reusable.yml"
+    with:
+      # デプロイ環境設定
+      ENVIRONMENT: prod
+      PROJECT_ID: terraform-gcp-prod-468022
+      REGION: asia-northeast1
+      VPC_CONNECTOR_NAME: main-connector
+      # Cloud Runサービス名
+      API_SERVICE_NAME: api-service
+      DASHBOARD_SERVICE_NAME: dashboard-service
+      # 公開URL
+      API_BASE_URL: https://api.my-learn-iac-sample.site
+      DASHBOARD_BASE_URL: https://my-learn-iac-sample.site
+      # データベース接続情報（terraform outputから取得）
+      DB_HOST: "10.83.0.3"
+      DB_USER: "api_user"
+      DB_NAME: "api_db"
+    secrets:
+      # 機密情報（GitHub Secrets経由で安全に渡す）
+      db-password: ${{ secrets.PROD_DB_PASSWORD }} # データベースパスワード
+      wif-provider: ${{ secrets.PROD_WIF_PROVIDER }} # Workload Identity Provider
+      service-account: ${{ secrets.PROD_SERVICE_ACCOUNT }} # GCPサービスアカウント
+      gcs-bucket-name: ${{ secrets.PROD_GCS_BUCKET_NAME }} # フロントエンド用GCSバケット
+      cdn-url-map-name: ${{ secrets.PROD_CDN_URL_MAP_NAME }} # CDN URL マップ名
