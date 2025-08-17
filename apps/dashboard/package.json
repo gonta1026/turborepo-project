@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite --clearScreen false",
-    "build": "tsc && vite build && cp dist/index.html dist/404.html",
-    "build:dev": "vite build --mode dev && cp dist/index.html dist/404.html",
-    "build:prod": "vite build --mode production && cp dist/index.html dist/404.html",
+    "build": "tsc && vite build",
+    "build:dev": "vite build --mode dev",
+    "build:prod": "vite build --mode production",
     "preview": "vite preview",
     "format-and-lint": "biome check .",
     "format-and-lint:fix": "biome check . --write",

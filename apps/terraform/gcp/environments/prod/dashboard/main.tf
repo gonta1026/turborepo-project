@@ -13,7 +13,7 @@ resource "google_storage_bucket" "dashboard_frontend" {
   # 静的ウェブサイトホスティング用の設定
   website {
     main_page_suffix = "index.html"
-    not_found_page   = "404.html"
+    not_found_page   = "index.html"
   }
 
   # セキュリティ設定

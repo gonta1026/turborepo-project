@@ -38,7 +38,7 @@ resource "google_storage_bucket" "website_bucket" {
   # 静的ウェブサイトホスティング用の設定
   website {
     main_page_suffix = "index.html"
-    not_found_page   = "404.html"
+    not_found_page   = "index.html"
   }
 
   # パブリックアクセス用の設定
@@ -97,11 +97,12 @@ resource "google_compute_backend_bucket" "website_backend" {
 # ======================================
 
 # URL Map for routing
-# シンプルな設定でCloud Storageのnot_found_pageに依存
+# Note: Load Balancer + Backend Bucket では Cloud Storage の not_found_page が機能しない制限があります
+# この問題は GCP の既知の制限です
 resource "google_compute_url_map" "website_url_map" {
   name            = "dashboard-url-map"
   default_service = google_compute_backend_bucket.website_backend.id
-  description     = "URL map for dashboard static website with SPA support"
+  description     = "URL map for dashboard static website"
 }
 
 # HTTP to HTTPS redirect URL Map
