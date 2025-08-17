@@ -157,11 +157,11 @@ jobs:
             --image=${{ inputs.REGION }}-docker.pkg.dev/${{ inputs.PROJECT_ID }}/api-service/api:${{ github.sha }} \
             --region=${{ inputs.REGION }} \
             --vpc-connector=${{ inputs.VPC_CONNECTOR_NAME }} \
-            --set-env-vars="DB_HOST=${{ inputs.DB_HOST }},DB_USER=${{ inputs.DB_USER }},DB_NAME=${{ inputs.DB_NAME }},DB_PORT=5432,DB_SSLMODE=require" \
+            --set-env-vars="DB_HOST=${{ inputs.DB_HOST }},DB_USER=${{ inputs.DB_USER }},DB_NAME=${{ inputs.DB_NAME }}" \
             --set-secrets="DB_PASSWORD=api-db-password:latest" \
             --service-account=api-cloud-run-sa@${{ inputs.PROJECT_ID }}.iam.gserviceaccount.com \
-            --command="migrate" \
-            --args="-path,migrations,-database,postgres://\$DB_USER:\$DB_PASSWORD@\$DB_HOST:\$DB_PORT/\$DB_NAME?sslmode=\$DB_SSLMODE,up"
+            --command="sh" \
+            --args="-c","export PGHOST=\$DB_HOST && export PGPORT=5432 && export PGUSER=\$DB_USER && export PGPASSWORD=\$DB_PASSWORD && export PGDATABASE=\$DB_NAME && export PGSSLMODE=require && migrate -path migrations -database postgres://\$PGUSER:\$PGPASSWORD@\$PGHOST:\$PGPORT/\$PGDATABASE?sslmode=\$PGSSLMODE up"
           
           gcloud run jobs execute $JOB_NAME --wait --region=${{ inputs.REGION }}
           echo "✅ Database migrations completed"
