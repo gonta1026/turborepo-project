@@ -159,8 +159,8 @@ jobs:
             --set-env-vars="DB_HOST=${{ inputs.DB_HOST }},DB_USER=${{ inputs.DB_USER }},DB_NAME=${{ inputs.DB_NAME }},DB_PORT=5432" \
             --set-secrets="DB_PASSWORD=api-db-password:latest" \
             --service-account=api-cloud-run-sa@${{ inputs.PROJECT_ID }}.iam.gserviceaccount.com \
-            --command="make" \
-            --args="migrate-up"
+            --command="migrate" \
+            --args="-path,migrations,-database,postgres://${{ inputs.DB_USER }}:$(gcloud secrets versions access latest --secret=api-db-password)@${{ inputs.DB_HOST }}:5432/${{ inputs.DB_NAME }}?sslmode=require,up"
             
           gcloud run jobs execute migration-job-${{ github.sha }} --wait --region=${{ inputs.REGION }}
           echo "✅ Database migrations completed"
