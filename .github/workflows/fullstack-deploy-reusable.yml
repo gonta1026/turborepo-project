@@ -116,6 +116,8 @@ jobs:
           npm install
 
       - name: Build Frontend
+        env:
+          VITE_API_BASE_URL: https://dev.api.my-learn-iac-sample.site/api/v1
         run: |
           echo "🔨 Building dashboard (changes detected)..."
           npm run build --workspace=dashboard
@@ -169,7 +171,6 @@ jobs:
           gcloud run services update-traffic ${{ inputs.API_SERVICE_NAME }} \
             --region=${{ inputs.REGION }} \
             --to-latest
-
 
       # Step 4: Frontend Deploy（Dashboard変更時のみ実行、apiが実行をされて成功をされたことを確認後にデプロイをする）
       - name: Deploy Frontend to Cloud Storage
