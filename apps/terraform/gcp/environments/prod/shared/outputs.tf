@@ -75,3 +75,31 @@ output "shared_certificate_map" {
     id   = google_certificate_manager_certificate_map.shared_cert_map.id
   }
 }
+
+# ======================================
+# GitHub Actions Service Account
+# ======================================
+
+output "github_actions_service_account_email" {
+  description = "GitHub Actions Service Account email (⚠️ Use this for PROD_SERVICE_ACCOUNT secret)"
+  value       = google_service_account.github_actions_deployer.email
+}
+
+output "github_actions_service_account_id" {
+  description = "GitHub Actions Service Account ID"
+  value       = google_service_account.github_actions_deployer.id
+}
+
+# ======================================
+# Workload Identity Federation
+# ======================================
+
+output "workload_identity_provider" {
+  description = "Workload Identity Provider (⚠️ Use this for PROD_WIF_PROVIDER secret)"
+  value       = google_iam_workload_identity_pool_provider.github_actions_provider.name
+}
+
+output "workload_identity_pool_name" {
+  description = "Workload Identity Pool name"
+  value       = google_iam_workload_identity_pool.github_actions_pool.name
+}

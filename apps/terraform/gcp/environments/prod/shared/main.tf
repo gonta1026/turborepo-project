@@ -14,3 +14,25 @@ provider "google" {
   region  = var.region
 }
 
+# ======================================
+# Artifact Registry
+# ======================================
+
+# Artifact Registry Repository for API Service
+# Docker images for API service are stored here
+resource "google_artifact_registry_repository" "api_service" {
+  location      = var.region
+  repository_id = "api-service"
+  description   = "Docker repository for API service images"
+  format        = "DOCKER"
+}
+
+# Artifact Registry Repository for Dashboard Service  
+# Docker images for Dashboard service are stored here
+resource "google_artifact_registry_repository" "dashboard_service" {
+  location      = var.region
+  repository_id = "dashboard-service"
+  description   = "Docker repository for Dashboard service images"
+  format        = "DOCKER"
+}
+

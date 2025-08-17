@@ -15,10 +15,9 @@ output "domain_name" {
 output "github_secrets_configuration" {
   description = "Configuration values needed for GitHub Secrets"
   value = {
-    PROD_SERVICE_ACCOUNT  = google_service_account.github_actions_deployer.email
     PROD_GCS_BUCKET_NAME  = google_storage_bucket.dashboard_frontend.name
     PROD_CDN_URL_MAP_NAME = google_compute_url_map.dashboard_frontend.name
-    PROD_WIF_PROVIDER     = google_iam_workload_identity_pool_provider.github_actions_provider.name
+    # PROD_SERVICE_ACCOUNT と PROD_WIF_PROVIDER は shared/ から取得してください
   }
 }
 
