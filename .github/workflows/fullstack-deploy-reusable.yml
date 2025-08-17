@@ -143,7 +143,7 @@ jobs:
             --region=${{ inputs.REGION }} \
             --no-traffic \
             --vpc-connector=${{ inputs.VPC_CONNECTOR_NAME }} \
-            --set-env-vars="DB_HOST=${{ inputs.DB_HOST }},DB_USER=${{ inputs.DB_USER }},DB_NAME=${{ inputs.DB_NAME }},DB_PORT=5432",DASHBOARD_BASE_URL=${{ inputs.DASHBOARD_BASE_URL }}" \
+            --set-env-vars="DB_HOST=${{ inputs.DB_HOST }},DB_USER=${{ inputs.DB_USER }},DB_NAME=${{ inputs.DB_NAME }},DB_PORT=5432,DASHBOARD_BASE_URL=${{ inputs.DASHBOARD_BASE_URL }}" \
             --set-secrets="DB_PASSWORD=api-db-password:latest" \
             --service-account=api-cloud-run-sa@${{ inputs.PROJECT_ID }}.iam.gserviceaccount.com
 
