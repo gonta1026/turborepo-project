@@ -60,3 +60,35 @@ output "db_password_secret_id" {
   description = "Secret Manager secret ID for database password"
   value       = google_secret_manager_secret.db_password.secret_id
 }
+
+# Cloud Run Service Information
+output "api_service_name" {
+  description = "Cloud Run API service name"
+  value       = google_cloud_run_v2_service.api_service.name
+}
+
+output "api_service_url" {
+  description = "Cloud Run API service URL"
+  value       = google_cloud_run_v2_service.api_service.uri
+}
+
+output "api_service_account_email" {
+  description = "Cloud Run service account email"
+  value       = google_service_account.api_cloud_run_sa.email
+}
+
+# Load Balancer Information
+output "backend_service_name" {
+  description = "Backend service name for the API load balancer"
+  value       = google_compute_backend_service.api_backend_service.name
+}
+
+output "neg_name" {
+  description = "Network Endpoint Group name for Cloud Run service"
+  value       = google_compute_region_network_endpoint_group.api_neg.name
+}
+
+output "load_balancer_url" {
+  description = "HTTP URL for the API load balancer (redirects to HTTPS)"
+  value       = "http://${data.terraform_remote_state.shared.outputs.api_static_ip_address}"
+}
