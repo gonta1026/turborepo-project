@@ -9,10 +9,9 @@
 
 locals {
   common_labels = merge(var.labels, {
-    project     = var.project_id
-    environment = var.environment
-    managed_by  = "terraform"
-    module      = "dashboard"
+    project    = var.project_id
+    managed_by = "terraform"
+    module     = "dashboard"
   })
 }
 
@@ -29,7 +28,7 @@ resource "random_id" "bucket_suffix" {
 # ======================================
 
 resource "google_storage_bucket" "website_bucket" {
-  name          = var.bucket_name != "" ? var.bucket_name : "terraform-gcp-466623-dashboard-frontend-${var.environment}-${random_id.bucket_suffix.hex}"
+  name          = var.bucket_name != "" ? var.bucket_name : "terraform-gcp-466623-dashboard-frontend-${random_id.bucket_suffix.hex}"
   location      = var.region
   force_destroy = var.force_destroy_bucket
 
@@ -65,7 +64,7 @@ resource "google_storage_bucket_iam_member" "website_bucket_public_read" {
 # ======================================
 
 resource "google_compute_global_address" "website_ip" {
-  name = "${var.environment}-website-static-ip"
+  name = "website-static-ip"
 }
 
 # ======================================
@@ -73,7 +72,7 @@ resource "google_compute_global_address" "website_ip" {
 # ======================================
 
 resource "google_compute_backend_bucket" "website_backend" {
-  name        = "${var.environment}-website-backend"
+  name        = "website-backend"
   bucket_name = google_storage_bucket.website_bucket.name
   enable_cdn  = var.enable_cdn
 
@@ -92,7 +91,7 @@ resource "google_compute_backend_bucket" "website_backend" {
 # ======================================
 
 resource "google_compute_url_map" "website_url_map" {
-  name            = "${var.environment}-website-url-map"
+  name            = "website-url-map"
   default_service = google_compute_backend_bucket.website_backend.id
 
   dynamic "host_rule" {
@@ -122,7 +121,7 @@ resource "google_compute_url_map" "website_url_map" {
 # ======================================
 
 resource "google_compute_target_http_proxy" "website_http_proxy" {
-  name    = "${var.environment}-website-http-proxy"
+  name    = "website-http-proxy"
   url_map = google_compute_url_map.website_url_map.id
 }
 
@@ -131,7 +130,7 @@ resource "google_compute_target_http_proxy" "website_http_proxy" {
 # ======================================
 
 resource "google_compute_global_forwarding_rule" "website_http_forwarding_rule" {
-  name       = "${var.environment}-website-http-forwarding-rule"
+  name       = "website-http-forwarding-rule"
   target     = google_compute_target_http_proxy.website_http_proxy.id
   port_range = "80"
   ip_address = google_compute_global_address.website_ip.address
@@ -144,7 +143,7 @@ resource "google_compute_global_forwarding_rule" "website_http_forwarding_rule" 
 resource "google_certificate_manager_certificate" "website_cert" {
   count = var.domain_name != "" ? 1 : 0
 
-  name        = "${var.environment}-website-cert"
+  name        = "website-cert"
   description = "SSL certificate for dashboard website"
 
   managed {
@@ -161,7 +160,7 @@ resource "google_certificate_manager_certificate" "website_cert" {
 resource "google_certificate_manager_certificate_map_entry" "website_cert_entry" {
   count = var.domain_name != "" ? 1 : 0
 
-  name         = "${var.environment}-website-cert-entry"
+  name         = "website-cert-entry"
   map          = var.shared_certificate_map_name
   certificates = [google_certificate_manager_certificate.website_cert[0].id]
   hostname     = var.domain_name
@@ -174,7 +173,7 @@ resource "google_certificate_manager_certificate_map_entry" "website_cert_entry"
 resource "google_compute_target_https_proxy" "website_https_proxy" {
   count = var.domain_name != "" ? 1 : 0
 
-  name            = "${var.environment}-website-https-proxy"
+  name            = "website-https-proxy"
   url_map         = google_compute_url_map.website_url_map.id
   certificate_map = "//certificatemanager.googleapis.com/${var.shared_certificate_map_id}"
 
@@ -190,7 +189,7 @@ resource "google_compute_target_https_proxy" "website_https_proxy" {
 resource "google_compute_global_forwarding_rule" "website_https_forwarding_rule" {
   count = var.domain_name != "" ? 1 : 0
 
-  name       = "${var.environment}-website-https-forwarding-rule"
+  name       = "website-https-forwarding-rule"
   target     = google_compute_target_https_proxy.website_https_proxy[0].id
   port_range = "443"
   ip_address = google_compute_global_address.website_ip.address

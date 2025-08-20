@@ -9,9 +9,8 @@
 
 locals {
   common_labels = merge(var.labels, {
-    project     = var.project_id
-    environment = var.environment
-    managed_by  = "terraform"
+    project    = var.project_id
+    managed_by = "terraform"
   })
 
   network_name = "${var.project_id}-vpc"
@@ -440,6 +439,35 @@ resource "google_certificate_manager_certificate_map" "shared_cert_map" {
   labels = local.common_labels
 
   depends_on = [google_project_service.load_balancer_apis]
+}
+
+# ======================================
+# Terraform State用GCSバケット
+# ======================================
+
+resource "google_storage_bucket" "terraform_state" {
+  name          = "terraform-gcp-466623-terraform-state"
+  location      = var.region
+  force_destroy = false
+
+  uniform_bucket_level_access = true
+
+  versioning {
+    enabled = true
+  }
+
+  lifecycle_rule {
+    condition {
+      num_newer_versions = 3
+    }
+    action {
+      type = "Delete"
+    }
+  }
+
+  labels = local.common_labels
+
+  depends_on = [google_project_service.required_apis]
 }
 
 # ======================================

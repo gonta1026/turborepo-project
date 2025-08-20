@@ -9,16 +9,15 @@ zone       = "asia-northeast1-a"
 
 # リソースラベル
 labels = {
-  environment = "prod"
-  team        = "platform"
+  team = "platform"
 }
 
 # IAM & GitHub Actions設定
 dev_team_group    = "dev-team@your-domain.com"
-github_repository = "your-org/your-repo"
+github_repository = "gonta1026/turborepo-project"
 
 # Dashboard設定
-bucket_name = ""  # 空の場合は自動生成
+bucket_name = "" # 空の場合は自動生成
 domain_name = "prod.dashboard.your-domain.com"
 
 # API設定

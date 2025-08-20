@@ -1,5 +1,5 @@
 # ======================================
-# Dev Environment Outputs - Module-based
+# Prod Environment Outputs - Module-based
 # ======================================
 # modules/からの出力を集約
 
@@ -15,11 +15,6 @@ output "project_id" {
 output "region" {
   description = "GCP Region"
   value       = var.region
-}
-
-output "environment" {
-  description = "Environment name"
-  value       = local.environment
 }
 
 # ======================================
@@ -118,16 +113,15 @@ output "api_dns_records_required" {
 # ======================================
 
 output "deployment_summary" {
-  description = "Summary of deployed resources for dev environment"
+  description = "Summary of deployed resources for prod environment"
   value = {
-    environment = local.environment
     shared = {
       vpc_network = module.shared.vpc_network_name
       static_ip   = module.shared.api_static_ip_address
     }
     backend = {
       database_instance = module.backend.database_instance_name
-      state_bucket     = module.backend.terraform_state_bucket_name
+      state_bucket      = module.backend.terraform_state_bucket_name
     }
     dashboard = {
       bucket_name = module.dashboard.bucket_name

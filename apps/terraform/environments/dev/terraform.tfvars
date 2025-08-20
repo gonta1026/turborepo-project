@@ -18,8 +18,7 @@ zone   = "asia-northeast1-a"
 # ======================================
 
 labels = {
-  environment = "dev"
-  managed_by  = "terraform"
+  managed_by = "terraform"
 }
 
 # ======================================
