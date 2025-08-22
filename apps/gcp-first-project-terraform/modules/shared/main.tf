@@ -444,7 +444,6 @@ resource "google_certificate_manager_certificate_map" "shared_cert_map" {
 # ======================================
 # Terraform State用GCSバケット
 # ======================================
-
 resource "google_storage_bucket" "terraform_state" {
   name          = "terraform-gcp-466623-terraform-state"
   location      = var.region

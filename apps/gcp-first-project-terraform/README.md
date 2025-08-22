@@ -1,3 +1,8 @@
+# 前提
+
+このterraformディレクトリは使われていません。
+一度実装をしたものを経験として残しているものです。
+
 # Terraform Infrastructure
 
 このディレクトリには、GCPインフラストラクチャのTerraform設定が含まれています。
