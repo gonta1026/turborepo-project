@@ -1,15 +1,15 @@
 # フルスタックアプリケーション開発環境デプロイワークフロー
 # APIとダッシュボードの変更検出時に自動でdev環境へデプロイ実行
 name: Deploy Full Stack to Dev
-on:
-  # 手動実行オプション
-  workflow_dispatch:
-    inputs:
-      message:
-        description: "Deployment message"
-        required: false
-        type: string
-        default: "Manual full stack deployment to dev environment"
+# on:
+#   # 手動実行オプション
+#   workflow_dispatch:
+#     inputs:
+#       message:
+#         description: "Deployment message"
+#         required: false
+#         type: string
+#         default: "Manual full stack deployment to dev environment"
 
 jobs:
   # ===== ダイレクトデプロイ（テストは別のciで事前に実行をする） =====
@@ -34,7 +34,7 @@ jobs:
       DASHBOARD_CLIENT_URL: https://dev.dashboard.my-learn-iac-sample.site
       # データベース接続情報
       DB_HOST: "10.71.0.5"
-      DB_USER: "api_user" 
+      DB_USER: "api_user"
       DB_NAME: "api_db"
     secrets:
       # 機密情報（GitHub Secrets経由で安全に渡す）
