@@ -1,4 +1,4 @@
-# Terraform Backend Configuration for Dev Environment
+# Terraform Backend Configuration for Prod Environment
 # GCSを使用してTerraform状態ファイルを管理
 
 terraform {
@@ -14,10 +14,9 @@ terraform {
     }
   }
 
-
   backend "gcs" {
-    bucket = "my-third-dev-terraform-state"
-    prefix = "dev"
+    bucket = "my-fourth-prod-terraform-state"
+    prefix = "prod"
   }
 }
 
@@ -26,3 +25,8 @@ provider "google" {
   project = var.project_id
   region  = var.region
 }
+
+# ======================================
+# Note: Shared Module（Terraform State含む）
+# ======================================
+# Terraform State用GCSバケットはmain.tfのsharedモジュールで作成される

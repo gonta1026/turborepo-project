@@ -23,8 +23,3 @@ variable "dev_team_group" {
   description = "Development team Google group email"
   type        = string
 }
-
-variable "github_repository" {
-  description = "GitHub repository for Workload Identity Federation (format: owner/repo)"
-  type        = string
-}

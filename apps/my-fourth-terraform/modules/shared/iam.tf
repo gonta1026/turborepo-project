@@ -27,11 +27,3 @@ resource "google_project_iam_member" "dev_team_roles" {
   member  = "group:${var.dev_team_group}"
 }
 
-# Terraform state bucketへのアクセス権限（開発チームグループ）
-resource "google_storage_bucket_iam_member" "dev_team_state_access" {
-  bucket = google_storage_bucket.terraform_state.name
-  role   = "roles/storage.objectAdmin"
-  member = "group:${var.dev_team_group}"
-
-  depends_on = [google_storage_bucket.terraform_state]
-}
