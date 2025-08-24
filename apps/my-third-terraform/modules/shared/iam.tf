@@ -1,0 +1,37 @@
+# IAM Configuration
+# 環境に依存しない共通のIAM設定
+
+# Google Groupベースでの権限管理
+# Group: dev-my-third-developers@rakushite-inc.jp
+
+# dev環境なので基本的にはなんでも触れるようにする。
+locals {
+  dev_roles = [
+    # "roles/viewer",              # プロジェクト閲覧
+    # "roles/storage.objectAdmin", # GCS管理
+    # "roles/run.developer",       # Cloud Run開発
+    # "roles/cloudsql.client",     # Cloud SQLクライアント
+    # "roles/compute.networkUser", # VPC使用
+    # "roles/logging.viewer",      # ログ閲覧
+    # "roles/monitoring.viewer",   # モニタリング閲覧
+    "roles/editor"
+  ]
+}
+
+# 開発チームグループにプロジェクトレベルの権限を付与
+resource "google_project_iam_member" "dev_team_roles" {
+  for_each = toset(local.dev_roles)
+
+  project = var.project_id
+  role    = each.value
+  member  = "group:${var.dev_team_group}"
+}
+
+# Terraform state bucketへのアクセス権限（開発チームグループ）
+resource "google_storage_bucket_iam_member" "dev_team_state_access" {
+  bucket = google_storage_bucket.terraform_state.name
+  role   = "roles/storage.objectAdmin"
+  member = "group:${var.dev_team_group}"
+
+  depends_on = [google_storage_bucket.terraform_state]
+}
