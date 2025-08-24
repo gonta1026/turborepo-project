@@ -20,3 +20,24 @@ CLAUDE.md
 start.md
 .envrc
 tmp/
+
+# Terraform状態ファイル
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Terraform作業ディレクトリ
+.terraform/
+.terraform.lock.hcl
+
+# 変数ファイル（機密情報を含む場合）
+terraform.tfvars.secret
+*.auto.tfvars
+.terraform.tfvars.json
+
+# ログファイル
+terraform.log
+
+# OS関連
+Thumbs.db
+
