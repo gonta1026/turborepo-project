@@ -42,7 +42,16 @@ resource "google_project_service" "required_apis" {
     "cloudapis.googleapis.com",            # Google Cloud API基盤サービス
     "monitoring.googleapis.com",           # Cloud Monitoring（メトリクス）
     "logging.googleapis.com",              # Cloud Logging（ログ管理）
-    "cloudidentity.googleapis.com"         # Googleグループ、ユーザー管理
+    "cloudidentity.googleapis.com",        # Googleグループ、ユーザー管理
+    "artifactregistry.googleapis.com",     # Artifact Registry
+    "run.googleapis.com",                  # Cloud Run
+    "cloudbuild.googleapis.com",           # Cloud Build
+    "servicenetworking.googleapis.com",    # Provides automatic management of network configurations
+    "sql-component.googleapis.com",        # Provides automatic management of network configurations
+    "sqladmin.googleapis.com",             # Cloud SQL
+    "cloudkms.googleapis.com",             # Cloud KMS
+    "secretmanager.googleapis.com",        # Secret Manager
+    "certificatemanager.googleapis.com",   # Certificate Manager
   ])
 
   project = var.project_id
