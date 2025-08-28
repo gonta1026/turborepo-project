@@ -11,6 +11,20 @@ output "github_actions_service_account_name" {
   description = "GitHub Actions Service Account name"
   value       = google_service_account.github_actions_deployer.name
 }
+
+# ======================================
+# Workload Identity Federation
+# ======================================
+
+output "workload_identity_pool_id" {
+  description = "Workload Identity Pool ID"
+  value       = google_iam_workload_identity_pool.github_actions.workload_identity_pool_id
+}
+
+output "workload_identity_provider_name" {
+  description = "Workload Identity Provider name"
+  value       = google_iam_workload_identity_pool_provider.github_actions.name
+}
 output "terraform_state_bucket_name" {
   description = "Name of the GCS bucket for Terraform state"
   value       = google_storage_bucket.terraform_state.name

@@ -23,11 +23,15 @@ variable "dev_team_group" {
   description = "Development team Google group email"
   type        = string
 }
+
+variable "github_repository" {
+  description = "GitHub repository in format 'owner/repo' for Workload Identity Federation"
+  type        = string
+}
 # VPC Access Connector設定
 variable "vpc_connector_min_instances" {
   description = "Minimum number of instances for VPC Access Connector"
   type        = number
-  default     = 2
 }
 
 variable "vpc_connector_max_instances" {
@@ -40,6 +44,18 @@ variable "vpc_connector_machine_type" {
   description = "Machine type for VPC Access Connector"
   type        = string
   default     = "e2-micro"
+}
+
+variable "vpc_connector_min_throughput" {
+  description = "Minimum throughput for VPC Access Connector (Mbps)"
+  type        = number
+  default     = 200
+}
+
+variable "vpc_connector_max_throughput" {
+  description = "Maximum throughput for VPC Access Connector (Mbps)"
+  type        = number
+  default     = 300
 }
 
 # ログ設定

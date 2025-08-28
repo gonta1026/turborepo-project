@@ -67,18 +67,78 @@ resource "google_project_service" "required_apis" {
 # ======================================
 # サービスアカウント
 # ======================================
-resource "google_service_account" "github_actions_deployer" {
-  project      = var.project_id
-  account_id   = "github-actions-deployer"
-  display_name = "GitHub Actions Deployer"
-  description  = "Service account for GitHub Actions deployment"
+# GitHub ActionsからGCPリソースにアクセスするためのサービスアカウント
 
-  depends_on = [google_project_service.required_apis]
+resource "google_service_account" "github_actions_deployer" {
+  project      = var.project_id                                  # 所属するプロジェクトID
+  account_id   = "github-actions-deployer"                       # サービスアカウントID（プロジェクト内でユニーク）
+  display_name = "GitHub Actions Deployer"                       # 人間が読みやすい表示名
+  description  = "Service account for GitHub Actions deployment" # サービスアカウントの用途説明
+
+  depends_on = [google_project_service.required_apis] # IAM APIが有効化された後に作成
+}
+
+# ======================================
+# Workload Identity Federation
+# ======================================
+# GitHub ActionsからGCPに安全にアクセスするための認証メカニズム
+# サービスアカウントキーを使わず、OIDCトークンベースで認証
+
+# Workload Identity Pool作成
+resource "google_iam_workload_identity_pool" "github_actions" {
+  project                   = var.project_id                              # 所属するプロジェクトID
+  workload_identity_pool_id = "github-actions-pool"                       # プールID（プロジェクト内でユニーク）
+  display_name              = "GitHub Actions Pool"                       # 人間が読みやすい表示名
+  description               = "Workload Identity Pool for GitHub Actions" # プールの用途説明
+
+  depends_on = [google_project_service.required_apis] # IAM APIが有効化された後に作成
+}
+
+# Workload Identity Pool Provider作成
+# GitHub ActionsのOIDCトークンを受け入れるプロバイダー設定
+resource "google_iam_workload_identity_pool_provider" "github_actions" {
+  project                            = var.project_id                                                             # 所属するプロジェクトID
+  workload_identity_pool_id          = google_iam_workload_identity_pool.github_actions.workload_identity_pool_id # 作成したプールを参照
+  workload_identity_pool_provider_id = "github-actions-provider"                                                  # プロバイダーID（プール内でユニーク）
+  display_name                       = "GitHub Actions Provider"                                                  # 人間が読みやすい表示名
+  description                        = "OIDC identity pool provider for GitHub Actions"                           # プロバイダーの用途説明
+
+  # GitHubのJWTトークンからGoogleの属性へのマッピング設定
+  attribute_mapping = {
+    "google.subject"       = "assertion.sub"        # JWT subjectをGoogle subjectにマッピング
+    "attribute.actor"      = "assertion.actor"      # 実行者情報の保存
+    "attribute.repository" = "assertion.repository" # リポジトリ名の保存（アクセス制御に使用）
+    "attribute.ref"        = "assertion.ref"        # ブランチ/タグ情報の保存
+  }
+
+  # OIDC設定：GitHubのトークン発行者を指定
+  oidc {
+    issuer_uri = "https://token.actions.githubusercontent.com" # GitHub ActionsのOIDC発行者URL
+  }
+
+  # セキュリティ制約：指定したGitHubリポジトリからのアクセスのみ許可
+  attribute_condition = "assertion.repository=='${var.github_repository}'"
+}
+
+# サービスアカウントにWorkload Identity権限を付与
+# 指定したGitHubリポジトリからサービスアカウントの偽装を許可
+resource "google_service_account_iam_member" "github_actions_workload_identity" {
+  service_account_id = google_service_account.github_actions_deployer.name # 対象サービスアカウント
+  role               = "roles/iam.workloadIdentityUser"                    # Workload Identity使用権限
+  # 特定のGitHubリポジトリからのアクセスのみを許可するメンバー設定
+  member = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github_actions.name}/attribute.repository/${var.github_repository}"
+
+  depends_on = [
+    google_iam_workload_identity_pool_provider.github_actions # プロバイダー作成後に実行
+  ]
 }
 
 # ======================================
 # Terraform State用GCSバケット
 # ======================================
+# Terraformのステートファイルを安全に保存するためのGCSバケット
+# バージョニング、ライフサイクル管理、アクセス制御を設定
+
 resource "google_storage_bucket" "terraform_state" {
   name          = "${var.project_id}-terraform-state" # バケット名：プロジェクトID-terraform-state
   location      = var.region                          # バケットのリージョン指定
@@ -124,6 +184,8 @@ resource "google_storage_bucket" "terraform_state" {
 # ======================================
 # VPCネットワーク
 # ======================================
+# プロジェクト全体で使用するメインVPCネットワーク
+# カスタムサブネット設計でネットワークを細かく制御
 
 resource "google_compute_network" "main_vpc" {
   name                    = local.network_name # VPCネットワーク名（"main-vpc"）
@@ -137,7 +199,10 @@ resource "google_compute_network" "main_vpc" {
 # ======================================
 # サブネット
 # ======================================
+# パブリック・プライベートサブネット構成でセキュリティを確保
+# フローログ設定でネットワーク監視を実現
 
+# パブリックサブネット：Load BalancerやNAT Gatewayを配置
 resource "google_compute_subnetwork" "public_subnet" {
   name          = "main-public"                      # パブリックサブネット名
   ip_cidr_range = local.public_subnet_cidr           # IPアドレス範囲（10.0.1.0/24）
@@ -152,6 +217,7 @@ resource "google_compute_subnetwork" "public_subnet" {
   }
 }
 
+# プライベートサブネット：Cloud SQLやその他のバックエンドサービスを配置
 resource "google_compute_subnetwork" "private_subnet" {
   name          = "main-private"                     # プライベートサブネット名
   ip_cidr_range = local.private_subnet_cidr          # IPアドレス範囲（10.0.2.0/24）
@@ -171,7 +237,10 @@ resource "google_compute_subnetwork" "private_subnet" {
 # ======================================
 # Cloud Router & NAT
 # ======================================
+# プライベートサブネットからインターネットへのアウトバウンド接続を提供
+# Cloud SQLやVPCコネクタからの外部API通信を可能にする
 
+# Cloud Router：NAT Gatewayの基盤となるルーター
 resource "google_compute_router" "main_router" {
   name    = "main-router"                      # Cloud Router名
   region  = var.region                         # ルーターのリージョン
@@ -185,6 +254,8 @@ resource "google_compute_router" "main_router" {
   depends_on = [google_project_service.required_apis] # Compute APIが有効化された後に作成
 }
 
+# Cloud NAT：プライベートIPからの外部アクセスを実現
+# NATとは Network Address Translationの略。 「ネットワークアドレス変換」ともいう。
 resource "google_compute_router_nat" "main_nat" {
   name                               = "main-nat"                             # Cloud NAT名
   router                             = google_compute_router.main_router.name # 使用するCloud Router
@@ -202,6 +273,8 @@ resource "google_compute_router_nat" "main_nat" {
 # ======================================
 # VPC Access Connector
 # ======================================
+# Cloud RunからVPCネットワーク内のリソース（Cloud SQL等）への接続を提供
+# サーバーレスサービスとVPCの橋渡し役として機能
 
 resource "google_vpc_access_connector" "main_connector" {
   name          = "main-connector"                     # VPC Access Connector名
@@ -210,12 +283,16 @@ resource "google_vpc_access_connector" "main_connector" {
   ip_cidr_range = local.vpc_connector_cidr             # 専用サブネット範囲（10.8.0.0/28）
   network       = google_compute_network.main_vpc.name # 接続先VPCネットワーク
 
-  # スケーリング設定
-  min_instances = var.vpc_connector_min_instances # 最小インスタンス数
-  max_instances = var.vpc_connector_max_instances # 最大インスタンス数
+  # スケーリング設定：トラフィック量に応じてインスタンス数を自動調整
+  min_instances = var.vpc_connector_min_instances # 最小インスタンス数（コスト効率を考慮）
+  max_instances = var.vpc_connector_max_instances # 最大インスタンス数（負荷対応力を考慮）
 
-  # 接続用マシンタイプ
-  machine_type = var.vpc_connector_machine_type # マシンタイプ
+  # インスタンス設定：パフォーマンスとコストのバランスを調整
+  machine_type = var.vpc_connector_machine_type # マシンタイプ（f1-micro, e2-micro, e2-standard-4から選択）
+
+  # スループット設定：予期しない変更を防ぐため明示的に指定
+  min_throughput = var.vpc_connector_min_throughput # 最小スループット (Mbps)
+  max_throughput = var.vpc_connector_max_throughput # 最大スループット (Mbps)
 
   depends_on = [google_project_service.required_apis] # VPC Access APIが有効化された後に作成
 }

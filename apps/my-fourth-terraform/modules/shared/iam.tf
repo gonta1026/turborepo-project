@@ -14,7 +14,8 @@ locals {
     # "roles/compute.networkUser", # VPC使用
     # "roles/logging.viewer",      # ログ閲覧
     # "roles/monitoring.viewer",   # モニタリング閲覧
-    "roles/editor"
+    "roles/editor",                # プロジェクト編集権限（開発環境では広範な権限を付与）
+    "roles/iam.securityAdmin"      # Workload Identity Federation管理のために追加
   ]
 }
 
