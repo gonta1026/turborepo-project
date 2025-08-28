@@ -59,6 +59,10 @@ graph TB
             StaticIP[Static IP Address]
         end
 
+        subgraph "Google Serverless Platform"
+            CloudRun[Cloud Run<br/>API Server<br/>Go Gin]
+        end
+
         subgraph "VPC Network (main-vpc)"
             subgraph "Public Subnet (10.0.1.0/24)"
                 NATGW[Cloud NAT Gateway]
@@ -66,12 +70,11 @@ graph TB
             end
 
             subgraph "Private Subnet (10.0.2.0/24)"
-                CloudRun[Cloud Run<br/>API Server<br/>Go Gin]
                 CloudSQL[Cloud SQL<br/>PostgreSQL<br/>Private IP]
             end
 
             subgraph "VPC Connector Subnet (10.8.0.0/28)"
-                VPCConn[VPC Access Connector<br/>Serverless → VPC]
+                VPCConn[VPC Access Connector<br/>Cloud Run → VPC]
             end
         end
 
@@ -99,20 +102,21 @@ graph TB
         DEV[Developer]
     end
 
-    %% User Flow
+    %% User Flow (Inbound)
     Users -->|HTTPS Request| DNS
     DNS -->|A Record| StaticIP
     StaticIP --> LB
     LB -->|SSL Termination| SSL
     LB --> CloudRun
 
-    %% Internal Connections
-    CloudRun --> VPCConn
+    %% Cloud Run Outbound Connections
+    CloudRun -.->|VPC Egress| VPCConn
     VPCConn --> CloudSQL
     CloudRun --> SM
-    CloudRun --> Router
+    CloudRun -.->|External API Calls<br/>via VPC Connector| VPCConn
+    VPCConn --> Router
     Router --> NATGW
-    NATGW -->|External API Calls| Users
+    NATGW -->|External APIs| Internet
 
     %% CI/CD Flow
     DEV -->|Push Code| GH
@@ -129,8 +133,10 @@ graph TB
     classDef network fill:#34a853,stroke:#137333,stroke-width:2px,color:#fff
     classDef security fill:#ea4335,stroke:#c5221f,stroke-width:2px,color:#fff
     classDef external fill:#9aa0a6,stroke:#5f6368,stroke-width:2px,color:#fff
+    classDef serverless fill:#fbbc04,stroke:#f9ab00,stroke-width:2px,color:#000
 
-    class LB,CloudRun,CloudSQL,AR,GCS,SM,MON,LOG gcpService
+    class LB,CloudSQL,AR,GCS,SM,MON,LOG gcpService
+    class CloudRun serverless
     class Router,NATGW,VPCConn,FW network
     class SA1,SA2,WIF,SSL security
     class Users,DNS,GH,DEV external
@@ -140,14 +146,15 @@ graph TB
 
 **ネットワーク構成**
 
+- Cloud RunはGoogleのサーバーレスプラットフォーム上で動作（VPCサブネット内ではない）
+- VPC Access ConnectorでCloud RunからVPC内リソースへのアウトバウンド接続を実現
 - VPCネットワーク内にパブリック・プライベートサブネットを分離
-- Cloud Routerで外部接続を制御
-- Cloud NATでプライベートサブネットからの外部アクセスを実現
+- Cloud Routerで外部接続を制御、Cloud NATで外部アクセスを実現
 
 **セキュリティ**
 
-- プライベートサブネット内にAPI・データベースを配置
-- VPC Access ConnectorでCloud RunとVPC間を接続
+- Cloud SQLをプライベートサブネット内に配置
+- VPC Access ConnectorでCloud RunからCloud SQLへの安全な接続
 - Workload Identity Federationで安全なCI/CD認証
 
 **スケーラビリティ**
