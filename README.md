@@ -36,10 +36,6 @@ gcloud config configurations activate [account name]
 ```
 
 ```
-gcloud auth login
-```
-
-```
 gcloud auth application-default login
 ```
 

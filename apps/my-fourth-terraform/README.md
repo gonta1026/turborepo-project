@@ -24,9 +24,9 @@ gcloud config configurations create [ex: my-fourth-prod-name]
 gcloud config set account [groupに招待をしてもらったemail]
 gcloud config set project my-fourth-prod
 
-# 登録をした特定の構成をアクティブにしたらログインをする
-gcloud config configurations activate [ex: my-fourth-dev-name]
-# activateにした構成でログインをする
+# 登録をした特定の構成をアクティブにする。アクティブにした構成でgcloudでアクセスをされる
+gcloud config configurations activate my-fourth-dev-katano
+# ADCの仕組みで対象のアカウントでログインをする。
 gcloud auth application-default login
 
 ```
@@ -37,3 +37,121 @@ gcloud auth application-default login
 # 現在のプロジェクトID
 gcloud config get-value project
 ```
+
+```bash
+# 現在の構成の一覧
+gcloud config configurations list
+```
+
+## インフラ構成図
+
+```mermaid
+graph TB
+    subgraph "Internet"
+        Users[Users]
+        DNS[ムームードメイン<br/>dev.api.domain.com]
+    end
+
+    subgraph "GCP Project (my-fourth-dev)"
+        subgraph "Global Resources"
+            LB[Global Load Balancer]
+            SSL[SSL Certificate<br/>Certificate Manager]
+            StaticIP[Static IP Address]
+        end
+
+        subgraph "VPC Network (main-vpc)"
+            subgraph "Public Subnet (10.0.1.0/24)"
+                NATGW[Cloud NAT Gateway]
+                Router[Cloud Router<br/>BGP ASN: 64514]
+            end
+
+            subgraph "Private Subnet (10.0.2.0/24)"
+                CloudRun[Cloud Run<br/>API Server<br/>Go Gin]
+                CloudSQL[Cloud SQL<br/>PostgreSQL<br/>Private IP]
+            end
+
+            subgraph "VPC Connector Subnet (10.8.0.0/28)"
+                VPCConn[VPC Access Connector<br/>Serverless → VPC]
+            end
+        end
+
+        subgraph "Storage & Registry"
+            AR[Artifact Registry<br/>Container Images]
+            GCS[GCS Bucket<br/>Terraform State]
+            SM[Secret Manager<br/>DB Credentials]
+        end
+
+        subgraph "IAM & Security"
+            SA1[GitHub Actions SA<br/>Deploy & Build]
+            SA2[Cloud Run SA<br/>Runtime Access]
+            WIF[Workload Identity<br/>Federation]
+        end
+
+        subgraph "Monitoring & Logging"
+            FW[Firewall Rules<br/>HTTP/HTTPS/Health]
+            MON[Cloud Monitoring]
+            LOG[Cloud Logging]
+        end
+    end
+
+    subgraph "CI/CD"
+        GH[GitHub Actions<br/>Build & Deploy]
+        DEV[Developer]
+    end
+
+    %% User Flow
+    Users -->|HTTPS Request| DNS
+    DNS -->|A Record| StaticIP
+    StaticIP --> LB
+    LB -->|SSL Termination| SSL
+    LB --> CloudRun
+
+    %% Internal Connections
+    CloudRun --> VPCConn
+    VPCConn --> CloudSQL
+    CloudRun --> SM
+    CloudRun --> Router
+    Router --> NATGW
+    NATGW -->|External API Calls| Users
+
+    %% CI/CD Flow
+    DEV -->|Push Code| GH
+    GH -->|Use WIF| SA1
+    SA1 -->|Build Image| AR
+    SA1 -->|Deploy Service| CloudRun
+    CloudRun -->|Pull Image| AR
+
+    %% State Management
+    GH -->|Terraform State| GCS
+
+    %% Styling
+    classDef gcpService fill:#4285f4,stroke:#1a73e8,stroke-width:2px,color:#fff
+    classDef network fill:#34a853,stroke:#137333,stroke-width:2px,color:#fff
+    classDef security fill:#ea4335,stroke:#c5221f,stroke-width:2px,color:#fff
+    classDef external fill:#9aa0a6,stroke:#5f6368,stroke-width:2px,color:#fff
+
+    class LB,CloudRun,CloudSQL,AR,GCS,SM,MON,LOG gcpService
+    class Router,NATGW,VPCConn,FW network
+    class SA1,SA2,WIF,SSL security
+    class Users,DNS,GH,DEV external
+```
+
+### アーキテクチャの特徴
+
+**ネットワーク構成**
+
+- VPCネットワーク内にパブリック・プライベートサブネットを分離
+- Cloud Routerで外部接続を制御
+- Cloud NATでプライベートサブネットからの外部アクセスを実現
+
+**セキュリティ**
+
+- プライベートサブネット内にAPI・データベースを配置
+- VPC Access ConnectorでCloud RunとVPC間を接続
+- Workload Identity Federationで安全なCI/CD認証
+
+**スケーラビリティ**
+
+- Cloud Runによる自動スケーリング
+- Global Load Balancerでの負荷分散
+- Artifact Registryでのコンテナ管理
