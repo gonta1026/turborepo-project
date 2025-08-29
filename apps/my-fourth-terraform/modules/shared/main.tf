@@ -242,7 +242,7 @@ resource "google_compute_subnetwork" "private_subnet" {
 
 # Cloud Router：NAT Gatewayの基盤となるルーター
 resource "google_compute_router" "main_router" {
-  name    = "api-router"                      # Cloud Router名
+  name    = "api-router"                       # Cloud Router名
   region  = var.region                         # ルーターのリージョン
   network = google_compute_network.main_vpc.id # 所属するVPCネットワーク
   project = var.project_id                     # 所属するプロジェクトID
@@ -257,7 +257,7 @@ resource "google_compute_router" "main_router" {
 # Cloud NAT：プライベートIPからの外部アクセスを実現
 # NATとは Network Address Translationの略。 「ネットワークアドレス変換」ともいう。
 resource "google_compute_router_nat" "main_nat" {
-  name                               = "api-nat"                             # Cloud NAT名
+  name                               = "api-nat"                              # Cloud NAT名
   router                             = google_compute_router.main_router.name # 使用するCloud Router
   region                             = var.region                             # NATのリージョン
   project                            = var.project_id                         # 所属するプロジェクトID
@@ -277,7 +277,7 @@ resource "google_compute_router_nat" "main_nat" {
 # サーバーレスサービスとVPCの橋渡し役として機能
 
 resource "google_vpc_access_connector" "main_connector" {
-  name          = "api-connector"                     # VPC Access Connector名
+  name          = "api-connector"                      # VPC Access Connector名
   project       = var.project_id                       # 所属するプロジェクトID
   region        = var.region                           # Connectorのリージョン
   ip_cidr_range = local.vpc_connector_cidr             # 専用サブネット範囲（10.8.0.0/28）
@@ -408,9 +408,9 @@ resource "google_compute_firewall" "allow_ssh" {
 
 resource "google_compute_global_address" "main_static_ip" {
   name         = "api-static-ip" # Load Balancer用静的IP名
-  project      = var.project_id   # 所属するプロジェクトID
-  address_type = "EXTERNAL"       # 外部アクセス用IP
-  ip_version   = "IPV4"           # IPv4アドレス
+  project      = var.project_id  # 所属するプロジェクトID
+  address_type = "EXTERNAL"      # 外部アクセス用IP
+  ip_version   = "IPV4"          # IPv4アドレス
 
   depends_on = [google_project_service.required_apis] # Compute APIが有効化された後に作成
 }
@@ -423,7 +423,7 @@ resource "google_compute_global_address" "main_static_ip" {
 
 resource "google_certificate_manager_certificate" "main_ssl_cert" {
   count   = var.ssl_certificate_count # 環境別でSSL証明書作成制御
-  name    = "api-ssl-cert"           # SSL証明書名
+  name    = "api-ssl-cert"            # SSL証明書名
   project = var.project_id            # 所属するプロジェクトID
 
   managed {
