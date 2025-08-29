@@ -13,7 +13,7 @@ locals {
     managed_by = "terraform"
   })
 
-  network_name = "main-vpc"
+  network_name = "api-vpc"
 
   public_subnet_cidr     = "10.0.1.0/24"
   private_subnet_cidr    = "10.0.2.0/24"
@@ -204,7 +204,7 @@ resource "google_compute_network" "main_vpc" {
 
 # パブリックサブネット：Load BalancerやNAT Gatewayを配置
 resource "google_compute_subnetwork" "public_subnet" {
-  name          = "main-public"                      # パブリックサブネット名
+  name          = "api-public"                       # パブリックサブネット名
   ip_cidr_range = local.public_subnet_cidr           # IPアドレス範囲（10.0.1.0/24）
   region        = var.region                         # サブネットのリージョン
   network       = google_compute_network.main_vpc.id # 所属するVPCネットワーク
@@ -219,7 +219,7 @@ resource "google_compute_subnetwork" "public_subnet" {
 
 # プライベートサブネット：Cloud SQLやその他のバックエンドサービスを配置
 resource "google_compute_subnetwork" "private_subnet" {
-  name          = "main-private"                     # プライベートサブネット名
+  name          = "api-private"                      # プライベートサブネット名
   ip_cidr_range = local.private_subnet_cidr          # IPアドレス範囲（10.0.2.0/24）
   region        = var.region                         # サブネットのリージョン
   network       = google_compute_network.main_vpc.id # 所属するVPCネットワーク
@@ -242,7 +242,7 @@ resource "google_compute_subnetwork" "private_subnet" {
 
 # Cloud Router：NAT Gatewayの基盤となるルーター
 resource "google_compute_router" "main_router" {
-  name    = "main-router"                      # Cloud Router名
+  name    = "api-router"                      # Cloud Router名
   region  = var.region                         # ルーターのリージョン
   network = google_compute_network.main_vpc.id # 所属するVPCネットワーク
   project = var.project_id                     # 所属するプロジェクトID
@@ -257,7 +257,7 @@ resource "google_compute_router" "main_router" {
 # Cloud NAT：プライベートIPからの外部アクセスを実現
 # NATとは Network Address Translationの略。 「ネットワークアドレス変換」ともいう。
 resource "google_compute_router_nat" "main_nat" {
-  name                               = "main-nat"                             # Cloud NAT名
+  name                               = "api-nat"                             # Cloud NAT名
   router                             = google_compute_router.main_router.name # 使用するCloud Router
   region                             = var.region                             # NATのリージョン
   project                            = var.project_id                         # 所属するプロジェクトID
@@ -277,7 +277,7 @@ resource "google_compute_router_nat" "main_nat" {
 # サーバーレスサービスとVPCの橋渡し役として機能
 
 resource "google_vpc_access_connector" "main_connector" {
-  name          = "main-connector"                     # VPC Access Connector名
+  name          = "api-connector"                     # VPC Access Connector名
   project       = var.project_id                       # 所属するプロジェクトID
   region        = var.region                           # Connectorのリージョン
   ip_cidr_range = local.vpc_connector_cidr             # 専用サブネット範囲（10.8.0.0/28）
@@ -397,5 +397,90 @@ resource "google_compute_firewall" "allow_ssh" {
   target_tags   = ["ssh-server"]                 # SSH接続対象タグ
 
   depends_on = [google_compute_network.main_vpc] # VPC作成後に実行
+}
+
+# ======================================
+# 静的IPアドレス（Load Balancer用）
+# ======================================
+# Global Load Balancerで使用する外部静的IPアドレス
+# DNSレコード（api.domain.com）でドメイン名と関連付けるために必要
+# Cloud Run APIは Load Balancer → Cloud Run の経路でアクセスされる
+
+resource "google_compute_global_address" "main_static_ip" {
+  name         = "api-static-ip" # Load Balancer用静的IP名
+  project      = var.project_id   # 所属するプロジェクトID
+  address_type = "EXTERNAL"       # 外部アクセス用IP
+  ip_version   = "IPV4"           # IPv4アドレス
+
+  depends_on = [google_project_service.required_apis] # Compute APIが有効化された後に作成
+}
+
+# ======================================
+# SSL証明書（Certificate Manager）
+# ======================================
+# HTTPSアクセス用のSSL/TLS証明書を自動管理
+# 証明書の自動更新と検証を行う
+
+resource "google_certificate_manager_certificate" "main_ssl_cert" {
+  count   = var.ssl_certificate_count # 環境別でSSL証明書作成制御
+  name    = "api-ssl-cert"           # SSL証明書名
+  project = var.project_id            # 所属するプロジェクトID
+
+  managed {
+    domains = var.ssl_certificate_domains # 対象ドメイン（環境別設定）
+  }
+
+  depends_on = [google_project_service.required_apis] # Certificate Manager APIが有効化された後に作成
+}
+
+# ======================================
+# Artifact Registry
+# ======================================
+# Dockerコンテナイメージの保存と管理
+# Cloud Runデプロイ用のプライベートレジストリ
+
+resource "google_artifact_registry_repository" "main_repo" {
+  location      = var.region                                # リポジトリのリージョン
+  project       = var.project_id                            # 所属するプロジェクトID
+  repository_id = "api-service"                             # リポジトリID
+  description   = "Container registry for api applications" # リポジトリの説明
+  format        = "DOCKER"                                  # Dockerフォーマット
+
+  labels = merge(local.common_labels, {
+    purpose = "container-registry" # このリポジトリの用途を示すラベル
+  })
+
+  depends_on = [google_project_service.required_apis] # Artifact Registry APIが有効化された後に作成
+}
+
+# ======================================
+# Private Service Connection
+# ======================================
+# Cloud SQLのプライベートIPアクセスを有効にするための設定
+# VPCとGoogleサービス間のプライベート接続を確立
+
+resource "google_compute_global_address" "private_ip_alloc" {
+  count         = var.private_service_connection_count     # 環境別でPrivate Service Connection制御
+  name          = "${local.network_name}-private-ip-alloc" # プライベートIPアロケーション名
+  project       = var.project_id                           # 所属するプロジェクトID
+  purpose       = "VPC_PEERING"                            # VPCピアリング用途
+  address_type  = "INTERNAL"                               # 内部アドレス
+  prefix_length = var.private_service_connection_prefix    # IPアドレス範囲のプレフィックス長
+
+  network = google_compute_network.main_vpc.id # 対象VPCネットワーク
+
+  depends_on = [google_project_service.required_apis] # Service Networking APIが有効化された後に作成
+}
+
+resource "google_service_networking_connection" "private_connection" {
+  count                   = var.private_service_connection_count                     # Private Service Connection制御
+  network                 = google_compute_network.main_vpc.id                       # 対象VPCネットワーク
+  service                 = "servicenetworking.googleapis.com"                       # Googleサービスとの接続
+  reserved_peering_ranges = [google_compute_global_address.private_ip_alloc[0].name] # プライベートIPレンジ
+
+  depends_on = [
+    google_compute_global_address.private_ip_alloc, # プライベートIP割り当て後に作成
+    google_project_service.required_apis            # Service Networking APIが有効化された後に作成
+  ]
 }
 

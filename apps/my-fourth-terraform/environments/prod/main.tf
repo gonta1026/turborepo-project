@@ -44,4 +44,10 @@ module "shared" {
   firewall_internal_udp_ports = ["53", "123"]                         # DNS、NTPのみ
   firewall_ssh_count          = 0                                     # 本番環境ではSSH無効
   firewall_ssh_source_ranges  = []                                    # SSH無効のため空
+
+  # Prod環境のインフラストラクチャ設定  
+  ssl_certificate_count             = 1                                # 本番環境ではSSL証明書必須
+  ssl_certificate_domains           = ["api.my-learn-iac-sample.site"] # 本番ドメイン
+  private_service_connection_count  = 1                                # Cloud SQL用のPrivate Service Connection
+  private_service_connection_prefix = 20                               # /20のIPアドレス範囲を確保
 }
