@@ -297,3 +297,105 @@ resource "google_vpc_access_connector" "main_connector" {
   depends_on = [google_project_service.required_apis] # VPC Access APIが有効化された後に作成
 }
 
+# ======================================
+# ファイアウォールルール
+# ======================================
+# VPCネットワークのトラフィック制御とセキュリティ強化
+# 環境別（dev/prod）で異なるセキュリティポリシーを適用
+
+# HTTP/HTTPS トラフィック許可ルール
+resource "google_compute_firewall" "allow_http_https" {
+  name    = "${local.network_name}-allow-http-https" # ファイアウォールルール名
+  network = google_compute_network.main_vpc.name     # 対象VPCネットワーク
+  project = var.project_id                           # 所属するプロジェクトID
+
+  # 許可する通信
+  allow {
+    protocol = "tcp"         # TCP通信
+    ports    = ["80", "443"] # HTTP(80), HTTPS(443)ポート
+  }
+
+  # 通信の方向と対象
+  direction     = "INGRESS"                       # 受信トラフィック
+  source_ranges = var.firewall_http_source_ranges # 許可するソースIP範囲（環境別設定）
+  target_tags   = ["http-server", "https-server"] # 対象インスタンスのタグ
+
+  depends_on = [google_compute_network.main_vpc] # VPC作成後に実行
+}
+
+# ヘルスチェック用ファイアウォールルール  
+resource "google_compute_firewall" "allow_health_check" {
+  name    = "${local.network_name}-allow-health-check" # ファイアウォールルール名
+  network = google_compute_network.main_vpc.name       # 対象VPCネットワーク
+  project = var.project_id                             # 所属するプロジェクトID
+
+  # 許可する通信
+  allow {
+    protocol = "tcp"                           # TCP通信
+    ports    = var.firewall_health_check_ports # ヘルスチェック用ポート（環境別設定）
+  }
+
+  # Google Cloud Load Balancerのヘルスチェック用IPレンジ
+  direction = "INGRESS" # 受信トラフィック  
+  source_ranges = [
+    "130.211.0.0/22", # Google Cloud Load Balancer
+    "35.191.0.0/16"   # Google Cloud Load Balancer
+  ]
+  target_tags = ["health-check"] # ヘルスチェック対象タグ
+
+  depends_on = [google_compute_network.main_vpc] # VPC作成後に実行
+}
+
+# 内部通信許可ルール
+resource "google_compute_firewall" "allow_internal" {
+  name    = "${local.network_name}-allow-internal" # ファイアウォールルール名
+  network = google_compute_network.main_vpc.name   # 対象VPCネットワーク
+  project = var.project_id                         # 所属するプロジェクトID
+
+  # 全プロトコル許可
+  allow {
+    protocol = "tcp"                           # TCP通信
+    ports    = var.firewall_internal_tcp_ports # 内部通信用TCPポート（環境別設定）
+  }
+
+  allow {
+    protocol = "udp"                           # UDP通信
+    ports    = var.firewall_internal_udp_ports # 内部通信用UDPポート（環境別設定）
+  }
+
+  allow {
+    protocol = "icmp" # ICMP（ping等）
+  }
+
+  # VPC内部からの通信を許可
+  direction = "INGRESS" # 受信トラフィック
+  source_ranges = [
+    local.public_subnet_cidr,  # パブリックサブネット（10.0.1.0/24）
+    local.private_subnet_cidr, # プライベートサブネット（10.0.2.0/24）
+    local.vpc_connector_cidr   # VPCコネクタ（10.8.0.0/28）
+  ]
+
+  depends_on = [google_compute_network.main_vpc] # VPC作成後に実行
+}
+
+# SSH接続許可ルール（環境別制御）
+resource "google_compute_firewall" "allow_ssh" {
+  count   = var.firewall_ssh_count               # 環境別でcount値を直接指定
+  name    = "${local.network_name}-allow-ssh"    # ファイアウォールルール名
+  network = google_compute_network.main_vpc.name # 対象VPCネットワーク
+  project = var.project_id                       # 所属するプロジェクトID
+
+  # SSH通信許可
+  allow {
+    protocol = "tcp"  # TCP通信
+    ports    = ["22"] # SSHポート
+  }
+
+  # SSH接続の制御
+  direction     = "INGRESS"                      # 受信トラフィック
+  source_ranges = var.firewall_ssh_source_ranges # SSH許可IP範囲（環境別設定）
+  target_tags   = ["ssh-server"]                 # SSH接続対象タグ
+
+  depends_on = [google_compute_network.main_vpc] # VPC作成後に実行
+}
+

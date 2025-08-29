@@ -85,3 +85,44 @@ variable "bucket_lifecycle_age_days" {
   type        = number
   default     = 30
 }
+
+# ======================================
+# ファイアウォール設定
+# ======================================
+# 環境別で明示的に設定することでセキュリティポリシーを明確化
+
+variable "firewall_http_source_ranges" {
+  description = "Source IP ranges allowed for HTTP/HTTPS traffic"
+  type        = list(string)
+  # defaultなし - 環境別で明示的に設定必須
+}
+
+variable "firewall_health_check_ports" {
+  description = "Ports allowed for health check traffic"
+  type        = list(string)
+  # defaultなし - 環境別で明示的に設定必須
+}
+
+variable "firewall_internal_tcp_ports" {
+  description = "TCP ports allowed for internal communication"
+  type        = list(string)
+  # defaultなし - 環境別で明示的に設定必須
+}
+
+variable "firewall_internal_udp_ports" {
+  description = "UDP ports allowed for internal communication"
+  type        = list(string)
+  # defaultなし - 環境別で明示的に設定必須
+}
+
+variable "firewall_ssh_count" {
+  description = "Count for SSH firewall rule (1 to create, 0 to skip)"
+  type        = number
+  # defaultなし - 環境別で明示的に設定必須
+}
+
+variable "firewall_ssh_source_ranges" {
+  description = "Source IP ranges allowed for SSH access"
+  type        = list(string)
+  # defaultなし - 環境別で明示的に設定必須
+}
