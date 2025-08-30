@@ -51,11 +51,29 @@ module "shared" {
   private_service_connection_prefix = 20                             # /20のIPアドレス範囲を確保
 
   # Prod環境のデータベース設定（最小コスト構成）
-  database_deletion_protection           = true # 本番環境では削除保護を有効（誤削除防止）
-  database_tier                          = "db-custom-1-3840" # PostgreSQL用最小構成（1vCPU, 3.75GB）
-  database_availability_type             = "ZONAL" # 単一ゾーンでコスト削減（本番でも最小コスト重視）
-  database_disk_size                     = 20 # 20GB（必要最小限サイズ）
-  database_backup_retained_count         = 3 # バックアップ保持数（最小限の3日間）
-  database_backup_enabled                = true # バックアップを有効化
-  database_transaction_log_retention_days = 3 # バックアップ保持数と同じに設定
+  database_deletion_protection            = true               # 本番環境では削除保護を有効（誤削除防止）
+  database_tier                           = "db-custom-1-3840" # PostgreSQL用最小構成（1vCPU, 3.75GB）
+  database_availability_type              = "ZONAL"            # 単一ゾーンでコスト削減（本番でも最小コスト重視）
+  database_disk_size                      = 20                 # 20GB（必要最小限サイズ）
+  database_backup_retained_count          = 3                  # バックアップ保持数（最小限の3日間）
+  database_backup_enabled                 = true               # バックアップを有効化
+  database_transaction_log_retention_days = 3                  # バックアップ保持数と同じに設定
+
+  # Prod環境のCloud Run設定（本番信頼性重視）
+  cloudrun_min_instances                    = 1                                                                         # 最小インスタンス数（常時起動でレスポンス向上）
+  cloudrun_max_instances                    = 10                                                                        # 最大インスタンス数（トラフィック増加に対応）
+  cloudrun_image                            = "asia-northeast1-docker.pkg.dev/${var.project_id}/api-service/api:latest" # 初期ダミーイメージ
+  cloudrun_cpu_limit                        = "2"                                                                       # CPU制限（2vCPU）
+  cloudrun_memory_limit                     = "1Gi"                                                                     # メモリ制限（1GB）
+  cloudrun_port                             = 8080                                                                      # アプリポート
+  cloudrun_environment                      = "production"                                                              # 環境名
+  cloudrun_health_check_path                = "/health"                                                                 # ヘルスチェックパス
+  cloudrun_startup_probe_initial_delay      = 5                                                                         # 起動プローブ初期遅延（秒）- 本番は短め
+  cloudrun_startup_probe_timeout            = 10                                                                        # 起動プローブタイムアウト（秒）- 本番は長め
+  cloudrun_startup_probe_period             = 5                                                                         # 起動プローブ間隔（秒）- 本番は短間隔
+  cloudrun_startup_probe_failure_threshold  = 5                                                                         # 起動プローブ失敗しきい値 - 本番は多め
+  cloudrun_liveness_probe_initial_delay     = 60                                                                        # 生存プローブ初期遅延（秒）
+  cloudrun_liveness_probe_timeout           = 10                                                                        # 生存プローブタイムアウト（秒）
+  cloudrun_liveness_probe_period            = 60                                                                        # 生存プローブ間隔（秒）
+  cloudrun_liveness_probe_failure_threshold = 5                                                                         # 生存プローブ失敗しきい値
 }

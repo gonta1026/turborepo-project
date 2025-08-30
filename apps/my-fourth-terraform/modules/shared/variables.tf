@@ -188,3 +188,87 @@ variable "database_transaction_log_retention_days" {
   description = "Transaction log retention days (1-7 for PostgreSQL)"
   type        = number
 }
+
+# ======================================
+# Cloud Run設定
+# ======================================
+
+variable "cloudrun_min_instances" {
+  description = "Minimum number of Cloud Run instances"
+  type        = number
+}
+
+variable "cloudrun_max_instances" {
+  description = "Maximum number of Cloud Run instances"
+  type        = number
+}
+
+variable "cloudrun_image" {
+  description = "Container image for Cloud Run service"
+  type        = string
+}
+
+variable "cloudrun_cpu_limit" {
+  description = "CPU limit for Cloud Run container"
+  type        = string
+}
+
+variable "cloudrun_memory_limit" {
+  description = "Memory limit for Cloud Run container"
+  type        = string
+}
+
+variable "cloudrun_port" {
+  description = "Container port for Cloud Run service"
+  type        = number
+}
+
+variable "cloudrun_environment" {
+  description = "Environment name (dev/prod)"
+  type        = string
+}
+
+variable "cloudrun_health_check_path" {
+  description = "Health check path for Cloud Run service"
+  type        = string
+}
+
+variable "cloudrun_startup_probe_initial_delay" {
+  description = "Initial delay for startup probe in seconds"
+  type        = number
+}
+
+variable "cloudrun_startup_probe_timeout" {
+  description = "Timeout for startup probe in seconds"
+  type        = number
+}
+
+variable "cloudrun_startup_probe_period" {
+  description = "Period for startup probe in seconds"
+  type        = number
+}
+
+variable "cloudrun_startup_probe_failure_threshold" {
+  description = "Failure threshold for startup probe"
+  type        = number
+}
+
+variable "cloudrun_liveness_probe_initial_delay" {
+  description = "Initial delay for liveness probe in seconds"
+  type        = number
+}
+
+variable "cloudrun_liveness_probe_timeout" {
+  description = "Timeout for liveness probe in seconds"
+  type        = number
+}
+
+variable "cloudrun_liveness_probe_period" {
+  description = "Period for liveness probe in seconds"
+  type        = number
+}
+
+variable "cloudrun_liveness_probe_failure_threshold" {
+  description = "Failure threshold for liveness probe"
+  type        = number
+}
