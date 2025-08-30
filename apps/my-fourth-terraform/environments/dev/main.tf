@@ -45,5 +45,14 @@ module "shared" {
   ssl_certificate_domain            = "dev.api.my-learn-iac-sample.site" # 開発用ドメイン
   private_service_connection_count  = 1                                  # Cloud SQL用のPrivate Service Connection
   private_service_connection_prefix = 20
+
+  # Dev環境のデータベース設定（最小コスト構成）
+  database_deletion_protection           = false # 開発環境では削除保護を無効（再作成容易）
+  database_tier                          = "db-g1-small" # 共有コア最小インスタンス（最安値）
+  database_availability_type             = "ZONAL" # 単一ゾーンでコスト削減
+  database_disk_size                     = 10 # 10GB最小サイズ（開発用は十分）
+  database_backup_retained_count         = 0 # バックアップ無効でストレージコストゼロ
+  database_backup_enabled                = false # バックアップを無効化
+  database_transaction_log_retention_days = 1 # 最小値（バックアップ無効時でも必要）
 }
 

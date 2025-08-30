@@ -122,3 +122,40 @@ output "api_static_ip_address" {
   description = "Address of the API Static IP"
   value       = google_compute_global_address.api_static_ip.address
 }
+
+# ======================================
+# Certificate Manager
+# ======================================
+
+output "certificate_map_name" {
+  description = "Name of the Certificate Manager map"
+  value       = length(google_certificate_manager_certificate_map.api_cert_map) > 0 ? google_certificate_manager_certificate_map.api_cert_map[0].name : null
+}
+
+output "certificate_map_id" {
+  description = "ID of the Certificate Manager map"
+  value       = length(google_certificate_manager_certificate_map.api_cert_map) > 0 ? google_certificate_manager_certificate_map.api_cert_map[0].id : null
+}
+
+# ======================================
+# Artifact Registry
+# ======================================
+
+output "artifact_registry_repository_name" {
+  description = "Name of the Artifact Registry repository for API service"
+  value       = google_artifact_registry_repository.api_repo.repository_id
+}
+
+# ======================================
+# Database Outputs
+# ======================================
+
+output "database_user" {
+  description = "Name of the database user"
+  value       = google_sql_user.api_user.name
+}
+
+output "database_password_secret_id" {
+  description = "Secret Manager secret ID for database password"
+  value       = google_secret_manager_secret.api_database_password.secret_id
+}

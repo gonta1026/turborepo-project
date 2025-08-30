@@ -149,3 +149,42 @@ variable "private_service_connection_prefix" {
   type        = number
   # defaultなし - 環境別で明示的に設定必須
 }
+
+# ======================================
+# データベース設定
+# ======================================
+
+variable "database_deletion_protection" {
+  description = "Enable deletion protection for database instance"
+  type        = bool
+}
+
+variable "database_tier" {
+  description = "Machine type for Cloud SQL instance"
+  type        = string
+}
+
+variable "database_availability_type" {
+  description = "Availability type for Cloud SQL instance (ZONAL or REGIONAL)"
+  type        = string
+}
+
+variable "database_disk_size" {
+  description = "Disk size for Cloud SQL instance in GB"
+  type        = number
+}
+
+variable "database_backup_retained_count" {
+  description = "Number of backups to retain"
+  type        = number
+}
+
+variable "database_backup_enabled" {
+  description = "Enable or disable database backups"
+  type        = bool
+}
+
+variable "database_transaction_log_retention_days" {
+  description = "Transaction log retention days (1-7 for PostgreSQL)"
+  type        = number
+}

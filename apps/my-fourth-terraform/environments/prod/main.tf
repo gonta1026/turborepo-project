@@ -49,4 +49,13 @@ module "shared" {
   ssl_certificate_domain            = "api.my-learn-iac-sample.site" # 本番ドメイン
   private_service_connection_count  = 1                              # Cloud SQL用のPrivate Service Connection
   private_service_connection_prefix = 20                             # /20のIPアドレス範囲を確保
+
+  # Prod環境のデータベース設定（最小コスト構成）
+  database_deletion_protection           = true # 本番環境では削除保護を有効（誤削除防止）
+  database_tier                          = "db-custom-1-3840" # PostgreSQL用最小構成（1vCPU, 3.75GB）
+  database_availability_type             = "ZONAL" # 単一ゾーンでコスト削減（本番でも最小コスト重視）
+  database_disk_size                     = 20 # 20GB（必要最小限サイズ）
+  database_backup_retained_count         = 3 # バックアップ保持数（最小限の3日間）
+  database_backup_enabled                = true # バックアップを有効化
+  database_transaction_log_retention_days = 3 # バックアップ保持数と同じに設定
 }

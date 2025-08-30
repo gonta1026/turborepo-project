@@ -514,3 +514,131 @@ resource "google_service_networking_connection" "private_connection" {
   ]
 }
 
+# ======================================
+# Database Password Generation
+# ======================================
+# データベースパスワードの生成とSecret Manager保存
+
+resource "random_password" "api_database_password" {
+  length  = 32     # パスワード長: 32文字
+  special = false  # 特殊文字を除外（PostgreSQLでのエスケープ問題を回避）
+}
+
+# ======================================
+# API Database用Secret
+# ======================================
+
+resource "google_secret_manager_secret" "api_database_password" {
+  secret_id = "api-database-password"  # Secret Manager内でのシークレット識別子
+  project   = var.project_id
+
+  labels = merge(local.common_labels, {
+    purpose = "database-password"  # シークレットの用途を明示
+  })
+
+  replication {
+    auto {}  # 自動レプリケーション（Googleが最適な場所に配置）
+  }
+
+  depends_on = [google_project_service.required_apis]
+}
+
+resource "google_secret_manager_secret_version" "api_database_password" {
+  secret      = google_secret_manager_secret.api_database_password.id  # 上記で作成したシークレットのID
+  secret_data = random_password.api_database_password.result           # 生成されたランダムパスワードを保存
+
+  depends_on = [google_secret_manager_secret.api_database_password]
+}
+
+# ======================================
+# API Cloud SQLインスタンス
+# ======================================
+
+resource "google_sql_database_instance" "api_db_instance" {
+  name                = "api-db"                           # Cloud SQLインスタンス名
+  database_version    = "POSTGRES_15"                     # PostgreSQL 15を使用
+  region              = var.region                         # デプロイリージョン
+  project             = var.project_id                     # GCPプロジェクトID
+  deletion_protection = var.database_deletion_protection   # 削除保護（prod: true, dev: false）
+
+  settings {
+    tier              = var.database_tier              # インスタンスタイプ（dev: db-f1-micro, prod: より大きいサイズ）
+    availability_type = var.database_availability_type # 可用性タイプ（dev: ZONAL, prod: REGIONAL）
+    disk_type         = "PD_SSD"                       # SSDディスクを使用（高パフォーマンス）
+    disk_size         = var.database_disk_size         # 初期ディスクサイズ（dev: 20GB）
+    disk_autoresize   = true                           # ディスク容量の自動拡張を有効
+
+    backup_configuration {
+      enabled                        = var.database_backup_enabled                    # バックアップ有効/無効
+      start_time                     = "04:00"                                        # バックアップ開始時刻（UTC）
+      point_in_time_recovery_enabled = var.database_backup_enabled                   # ポイントインタイムリカバリ
+      transaction_log_retention_days = var.database_transaction_log_retention_days   # トランザクションログ保持日数
+      backup_retention_settings {
+        retained_backups = var.database_backup_retained_count  # バックアップ保持数
+        retention_unit   = "COUNT"                             # 保持単位（個数ベース）
+      }
+    }
+
+    maintenance_window {
+      hour = 4  # メンテナンス時刻（UTC 4時 = JST 13時）
+      day  = 7  # メンテナンス曜日（日曜日）
+    }
+
+    ip_configuration {
+      ipv4_enabled                                  = false                            # パブリックIPを無効化（セキュリティ強化）
+      private_network                               = google_compute_network.api_vpc.id  # プライベートVPCネットワークを指定
+      enable_private_path_for_google_cloud_services = true                           # Googleサービス向けプライベートパスを有効化
+      ssl_mode                                      = "ENCRYPTED_ONLY"               # SSL暗号化を強制
+    }
+
+    database_flags {
+      name  = "log_min_duration_statement"  # 1秒以上かかるクエリをログ出力
+      value = "1000"                       # 単位: ミリ秒
+    }
+    database_flags {
+      name  = "log_checkpoints"     # チェックポイント処理をログ出力
+      value = "on"
+    }
+    database_flags {
+      name  = "log_connections"     # データベース接続をログ出力
+      value = "on"
+    }
+    database_flags {
+      name  = "log_disconnections"  # データベース切断をログ出力
+      value = "on"
+    }
+  }
+
+  depends_on = [
+    google_service_networking_connection.private_connection,
+    google_project_service.required_apis
+  ]
+}
+
+# ======================================
+# API データベース
+# ======================================
+
+resource "google_sql_database" "api_database" {
+  name      = "api_db"                                      # データベース名
+  instance  = google_sql_database_instance.api_db_instance.name  # 上記で作成したインスタンスを指定
+  project   = var.project_id                                # GCPプロジェクトID
+  charset   = "UTF8"                                        # 文字セット（Unicode）
+  collation = "en_US.UTF8"                                  # 照合順序（英語環境、UTF8）
+
+  depends_on = [google_sql_database_instance.api_db_instance]
+}
+
+# ======================================
+# API データベースユーザー
+# ======================================
+
+resource "google_sql_user" "api_user" {
+  name     = "api_user"                                      # データベースユーザー名
+  instance = google_sql_database_instance.api_db_instance.name  # 上記で作成したインスタンスを指定
+  project  = var.project_id                                 # GCPプロジェクトID
+  password = random_password.api_database_password.result   # 生成されたランダムパスワードを使用
+
+  depends_on = [google_sql_database_instance.api_db_instance]
+}
+
