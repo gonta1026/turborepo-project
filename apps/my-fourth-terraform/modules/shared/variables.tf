@@ -131,17 +131,12 @@ variable "firewall_ssh_source_ranges" {
 # インフラストラクチャ設定
 # ======================================
 
-variable "ssl_certificate_count" {
-  description = "Count for SSL certificate (1 to create, 0 to skip)"
-  type        = number
+variable "ssl_certificate_domain" {
+  description = "Primary domain for SSL certificate"
+  type        = string
   # defaultなし - 環境別で明示的に設定必須
 }
 
-variable "ssl_certificate_domains" {
-  description = "Domains for SSL certificate"
-  type        = list(string)
-  # defaultなし - 環境別で明示的に設定必須
-}
 
 variable "private_service_connection_count" {
   description = "Count for Private Service Connection (1 to create, 0 to skip)"

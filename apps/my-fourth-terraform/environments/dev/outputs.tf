@@ -31,3 +31,17 @@ output "workload_identity_provider_name" {
   value       = module.shared.workload_identity_provider_name
 }
 
+# ======================================
+# Network Resources
+# ======================================
+
+output "api_static_ip_name" {
+  description = "Name of the API Static IP"
+  value       = module.shared.api_static_ip_name
+}
+
+output "api_static_ip_address" {
+  description = "Address of the API Static IP"
+  value       = module.shared.api_static_ip_address
+}
+

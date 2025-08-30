@@ -112,3 +112,13 @@ output "vpc_connector_self_link" {
   description = "Self link of the VPC Access Connector"
   value       = google_vpc_access_connector.api_connector.self_link
 }
+
+output "api_static_ip_name" {
+  description = "Name of the API Static IP"
+  value       = google_compute_global_address.api_static_ip.name
+}
+
+output "api_static_ip_address" {
+  description = "Address of the API Static IP"
+  value       = google_compute_global_address.api_static_ip.address
+}

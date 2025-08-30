@@ -42,9 +42,8 @@ module "shared" {
   firewall_ssh_source_ranges  = ["0.0.0.0/0"]                 # 開発用に全世界許可（要注意）
 
   # Dev環境のインフラストラクチャ設定
-  ssl_certificate_count             = 0                                    # 開発環境ではSSL証明書なし（HTTPアクセス）
-  ssl_certificate_domains           = ["dev.api.my-learn-iac-sample.site"] # 開発用ドメイン
-  private_service_connection_count  = 1                                    # Cloud SQL用のPrivate Service Connection
-  private_service_connection_prefix = 20                                   # /20のIPアドレス範囲を確保
+  ssl_certificate_domain            = "dev.api.my-learn-iac-sample.site" # 開発用ドメイン
+  private_service_connection_count  = 1                                  # Cloud SQL用のPrivate Service Connection
+  private_service_connection_prefix = 20
 }
 

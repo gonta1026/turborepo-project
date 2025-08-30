@@ -422,15 +422,45 @@ resource "google_compute_global_address" "api_static_ip" {
 # 証明書の自動更新と検証を行う
 
 resource "google_certificate_manager_certificate" "api_ssl_cert" {
-  count   = var.ssl_certificate_count # 環境別でSSL証明書作成制御
-  name    = "api-ssl-cert"            # SSL証明書名
-  project = var.project_id            # 所属するプロジェクトID
+  count   = 1
+  name    = "api-ssl-cert" # SSL証明書名
+  project = var.project_id # 所属するプロジェクトID
 
   managed {
-    domains = var.ssl_certificate_domains # 対象ドメイン（環境別設定）
+    domains = [var.ssl_certificate_domain] # 対象ドメイン（文字列を配列化）
   }
 
   depends_on = [google_project_service.required_apis] # Certificate Manager APIが有効化された後に作成
+}
+
+# ======================================
+# Certificate Manager証明書マップ
+# ======================================
+# Load BalancerでSSL証明書を使用するための証明書マップ
+
+resource "google_certificate_manager_certificate_map" "api_cert_map" {
+  count   = 1              # 環境別でSSL証明書マップ作成制御
+  name    = "api-cert-map" # 証明書マップ名
+  project = var.project_id # 所属するプロジェクトID
+
+  depends_on = [google_project_service.required_apis] # Certificate Manager APIが有効化された後に作成
+}
+
+# 証明書マップエントリ：ドメインと証明書の関連付け
+resource "google_certificate_manager_certificate_map_entry" "api_cert_map_entry" {
+  count        = 1                                                               # 環境別で証明書マップエントリ作成制御
+  name         = "api-cert-map-entry"                                            # 証明書マップエントリ名
+  project      = var.project_id                                                  # 所属するプロジェクトID
+  map          = google_certificate_manager_certificate_map.api_cert_map[0].name # 証明書マップ参照
+  certificates = [google_certificate_manager_certificate.api_ssl_cert[0].id]     # 使用する証明書
+
+  # ホスト名指定
+  hostname = var.ssl_certificate_domain
+
+  depends_on = [
+    google_certificate_manager_certificate.api_ssl_cert,
+    google_certificate_manager_certificate_map.api_cert_map
+  ]
 }
 
 # ======================================
