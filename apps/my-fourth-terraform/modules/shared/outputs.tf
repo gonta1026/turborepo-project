@@ -129,12 +129,12 @@ output "api_static_ip_address" {
 
 output "certificate_map_name" {
   description = "Name of the Certificate Manager map"
-  value       = length(google_certificate_manager_certificate_map.api_cert_map) > 0 ? google_certificate_manager_certificate_map.api_cert_map[0].name : null
+  value       = google_certificate_manager_certificate_map.api_cert_map.name
 }
 
 output "certificate_map_id" {
   description = "ID of the Certificate Manager map"
-  value       = length(google_certificate_manager_certificate_map.api_cert_map) > 0 ? google_certificate_manager_certificate_map.api_cert_map[0].id : null
+  value       = google_certificate_manager_certificate_map.api_cert_map.id
 }
 
 # ======================================

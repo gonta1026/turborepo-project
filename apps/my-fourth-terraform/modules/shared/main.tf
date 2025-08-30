@@ -422,7 +422,6 @@ resource "google_compute_global_address" "api_static_ip" {
 # 証明書の自動更新と検証を行う
 
 resource "google_certificate_manager_certificate" "api_ssl_cert" {
-  count   = 1
   name    = "api-ssl-cert" # SSL証明書名
   project = var.project_id # 所属するプロジェクトID
 
@@ -439,7 +438,6 @@ resource "google_certificate_manager_certificate" "api_ssl_cert" {
 # Load BalancerでSSL証明書を使用するための証明書マップ
 
 resource "google_certificate_manager_certificate_map" "api_cert_map" {
-  count   = 1              # 環境別でSSL証明書マップ作成制御
   name    = "api-cert-map" # 証明書マップ名
   project = var.project_id # 所属するプロジェクトID
 
@@ -448,11 +446,10 @@ resource "google_certificate_manager_certificate_map" "api_cert_map" {
 
 # 証明書マップエントリ：ドメインと証明書の関連付け
 resource "google_certificate_manager_certificate_map_entry" "api_cert_map_entry" {
-  count        = 1                                                               # 環境別で証明書マップエントリ作成制御
   name         = "api-cert-map-entry"                                            # 証明書マップエントリ名
   project      = var.project_id                                                  # 所属するプロジェクトID
-  map          = google_certificate_manager_certificate_map.api_cert_map[0].name # 証明書マップ参照
-  certificates = [google_certificate_manager_certificate.api_ssl_cert[0].id]     # 使用する証明書
+  map          = google_certificate_manager_certificate_map.api_cert_map.name # 証明書マップ参照
+  certificates = [google_certificate_manager_certificate.api_ssl_cert.id]     # 使用する証明書
 
   # ホスト名指定
   hostname = var.ssl_certificate_domain
@@ -859,26 +856,20 @@ resource "google_compute_url_map" "api_url_map" {
   default_service = google_compute_backend_service.api_backend_service.id
   project         = var.project_id
 
-  # ドメイン名がある場合のホストルール
-  dynamic "host_rule" {
-    for_each = var.ssl_certificate_domain != "" ? [1] : []
-    content {
-      hosts        = [var.ssl_certificate_domain]
-      path_matcher = "allpaths"
-    }
+  # ホストルール
+  host_rule {
+    hosts        = [var.ssl_certificate_domain]
+    path_matcher = "allpaths"
   }
 
   # パスマッチャー
-  dynamic "path_matcher" {
-    for_each = var.ssl_certificate_domain != "" ? [1] : []
-    content {
-      name            = "allpaths"
-      default_service = google_compute_backend_service.api_backend_service.id
+  path_matcher {
+    name            = "allpaths"
+    default_service = google_compute_backend_service.api_backend_service.id
 
-      path_rule {
-        paths   = ["/*"]
-        service = google_compute_backend_service.api_backend_service.id
-      }
+    path_rule {
+      paths   = ["/*"]
+      service = google_compute_backend_service.api_backend_service.id
     }
   }
 
@@ -887,11 +878,10 @@ resource "google_compute_url_map" "api_url_map" {
 
 # HTTPS Proxy (SSL終端)
 resource "google_compute_target_https_proxy" "api_https_proxy" {
-  count = var.ssl_certificate_domain != "" ? 1 : 0
 
   name            = "api-https-proxy"
   url_map         = google_compute_url_map.api_url_map.id
-  certificate_map = "//certificatemanager.googleapis.com/${google_certificate_manager_certificate_map.api_cert_map[0].id}"
+  certificate_map = "//certificatemanager.googleapis.com/${google_certificate_manager_certificate_map.api_cert_map.id}"
   project         = var.project_id
 
   depends_on = [
@@ -902,10 +892,8 @@ resource "google_compute_target_https_proxy" "api_https_proxy" {
 
 # HTTPS Forwarding Rule (外部IP接続)
 resource "google_compute_global_forwarding_rule" "api_https_forwarding_rule" {
-  count = var.ssl_certificate_domain != "" ? 1 : 0
-
   name       = "api-https-forwarding-rule"
-  target     = google_compute_target_https_proxy.api_https_proxy[0].id
+  target     = google_compute_target_https_proxy.api_https_proxy.id
   port_range = "443"
   ip_address = google_compute_global_address.api_static_ip.address
   project    = var.project_id
@@ -915,7 +903,6 @@ resource "google_compute_global_forwarding_rule" "api_https_forwarding_rule" {
 
 # HTTP→HTTPS リダイレクト用 URL Map
 resource "google_compute_url_map" "api_http_redirect" {
-  count = var.ssl_certificate_domain != "" ? 1 : 0
 
   name    = "api-http-redirect"
   project = var.project_id
@@ -929,10 +916,9 @@ resource "google_compute_url_map" "api_http_redirect" {
 
 # HTTP Proxy (リダイレクト用)
 resource "google_compute_target_http_proxy" "api_http_proxy" {
-  count = var.ssl_certificate_domain != "" ? 1 : 0
 
   name    = "api-http-proxy"
-  url_map = google_compute_url_map.api_http_redirect[0].id
+  url_map = google_compute_url_map.api_http_redirect.id
   project = var.project_id
 
   depends_on = [google_compute_url_map.api_http_redirect]
@@ -940,10 +926,9 @@ resource "google_compute_target_http_proxy" "api_http_proxy" {
 
 # HTTP Forwarding Rule (リダイレクト用)
 resource "google_compute_global_forwarding_rule" "api_http_forwarding_rule" {
-  count = var.ssl_certificate_domain != "" ? 1 : 0
 
   name       = "api-http-forwarding-rule"
-  target     = google_compute_target_http_proxy.api_http_proxy[0].id
+  target     = google_compute_target_http_proxy.api_http_proxy.id
   port_range = "80"
   ip_address = google_compute_global_address.api_static_ip.address
   project    = var.project_id
