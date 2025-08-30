@@ -766,6 +766,8 @@ resource "google_cloud_run_v2_service" "api_service" {
       # 重要: Cloud SQL で ssl_mode = "ENCRYPTED_ONLY" を設定している場合、
       # この環境変数は必須です。設定しないとCloud Runが起動時にクラッシュします
       # 理由: Goアプリのデフォルト DB_SSLMODE="disable" とSSL必須設定が競合するため
+      # Cloud SQL: "SSL無し接続は拒否されます"
+      # アプリ起動時にDB接続エラー → プロセス終了 → startup probe失敗 → Cloud Run起動不可
       env {
         name  = "DB_SSLMODE"
         value = "require" # PostgreSQLのSSL接続を必須に設定
@@ -813,5 +815,139 @@ resource "google_cloud_run_v2_service" "api_service" {
     google_secret_manager_secret_version.api_database_password,
     google_project_iam_member.api_service_roles
   ]
+}
+
+# ======================================
+# Load Balancer Resources
+# ======================================
+
+# Network Endpoint Group (Cloud Run接続用)
+resource "google_compute_region_network_endpoint_group" "api_neg" {
+  name                  = "api-neg"
+  network_endpoint_type = "SERVERLESS"
+  region                = var.region
+  project               = var.project_id
+
+  cloud_run {
+    service = google_cloud_run_v2_service.api_service.name
+  }
+
+  depends_on = [google_cloud_run_v2_service.api_service]
+}
+
+# Backend Service (NEGを含む)
+resource "google_compute_backend_service" "api_backend_service" {
+  name                  = "api-backend-service"
+  protocol              = "HTTP"
+  load_balancing_scheme = "EXTERNAL_MANAGED"
+  project               = var.project_id
+
+  backend {
+    group = google_compute_region_network_endpoint_group.api_neg.id
+  }
+
+  log_config {
+    enable = true # Backend Service のログを有効化
+  }
+
+  depends_on = [google_compute_region_network_endpoint_group.api_neg]
+}
+
+# URL Map (ルーティング)
+resource "google_compute_url_map" "api_url_map" {
+  name            = "api-url-map"
+  default_service = google_compute_backend_service.api_backend_service.id
+  project         = var.project_id
+
+  # ドメイン名がある場合のホストルール
+  dynamic "host_rule" {
+    for_each = var.ssl_certificate_domain != "" ? [1] : []
+    content {
+      hosts        = [var.ssl_certificate_domain]
+      path_matcher = "allpaths"
+    }
+  }
+
+  # パスマッチャー
+  dynamic "path_matcher" {
+    for_each = var.ssl_certificate_domain != "" ? [1] : []
+    content {
+      name            = "allpaths"
+      default_service = google_compute_backend_service.api_backend_service.id
+
+      path_rule {
+        paths   = ["/*"]
+        service = google_compute_backend_service.api_backend_service.id
+      }
+    }
+  }
+
+  depends_on = [google_compute_backend_service.api_backend_service]
+}
+
+# HTTPS Proxy (SSL終端)
+resource "google_compute_target_https_proxy" "api_https_proxy" {
+  count = var.ssl_certificate_domain != "" ? 1 : 0
+
+  name            = "api-https-proxy"
+  url_map         = google_compute_url_map.api_url_map.id
+  certificate_map = "//certificatemanager.googleapis.com/${google_certificate_manager_certificate_map.api_cert_map[0].id}"
+  project         = var.project_id
+
+  depends_on = [
+    google_compute_url_map.api_url_map,
+    google_certificate_manager_certificate_map_entry.api_cert_map_entry
+  ]
+}
+
+# HTTPS Forwarding Rule (外部IP接続)
+resource "google_compute_global_forwarding_rule" "api_https_forwarding_rule" {
+  count = var.ssl_certificate_domain != "" ? 1 : 0
+
+  name       = "api-https-forwarding-rule"
+  target     = google_compute_target_https_proxy.api_https_proxy[0].id
+  port_range = "443"
+  ip_address = google_compute_global_address.api_static_ip.address
+  project    = var.project_id
+
+  depends_on = [google_compute_target_https_proxy.api_https_proxy]
+}
+
+# HTTP→HTTPS リダイレクト用 URL Map
+resource "google_compute_url_map" "api_http_redirect" {
+  count = var.ssl_certificate_domain != "" ? 1 : 0
+
+  name    = "api-http-redirect"
+  project = var.project_id
+
+  default_url_redirect {
+    https_redirect         = true
+    redirect_response_code = "MOVED_PERMANENTLY_DEFAULT"
+    strip_query            = false
+  }
+}
+
+# HTTP Proxy (リダイレクト用)
+resource "google_compute_target_http_proxy" "api_http_proxy" {
+  count = var.ssl_certificate_domain != "" ? 1 : 0
+
+  name    = "api-http-proxy"
+  url_map = google_compute_url_map.api_http_redirect[0].id
+  project = var.project_id
+
+  depends_on = [google_compute_url_map.api_http_redirect]
+}
+
+# HTTP Forwarding Rule (リダイレクト用)
+resource "google_compute_global_forwarding_rule" "api_http_forwarding_rule" {
+  count = var.ssl_certificate_domain != "" ? 1 : 0
+
+  name       = "api-http-forwarding-rule"
+  target     = google_compute_target_http_proxy.api_http_proxy[0].id
+  port_range = "80"
+  ip_address = google_compute_global_address.api_static_ip.address
+  project    = var.project_id
+
+  depends_on = [google_compute_target_http_proxy.api_http_proxy]
 }
 
