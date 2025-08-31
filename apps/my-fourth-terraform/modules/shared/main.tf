@@ -991,7 +991,7 @@ resource "google_storage_bucket" "dashboard_bucket" {
 
   website {
     main_page_suffix = "index.html"
-    not_found_page   = "404.html"
+    not_found_page   = "index.html"
   }
 
   cors {
@@ -1037,12 +1037,12 @@ resource "google_compute_backend_bucket" "dashboard_backend" {
     default_ttl       = var.dashboard_cdn_default_ttl
     client_ttl        = var.dashboard_cdn_client_ttl
     max_ttl           = var.dashboard_cdn_max_ttl
-    negative_caching  = true
+    negative_caching  = false # 404キャッシュを無効化（SPA用）
     serve_while_stale = var.dashboard_cdn_serve_while_stale
   }
 }
 
-# Dashboard URL Map
+# Dashboard URL Map 
 resource "google_compute_url_map" "dashboard_url_map" {
   name            = "dashboard-url-map"
   default_service = google_compute_backend_bucket.dashboard_backend.id

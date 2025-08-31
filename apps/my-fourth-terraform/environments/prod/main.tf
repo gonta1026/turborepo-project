@@ -68,8 +68,8 @@ module "shared" {
   cloudrun_environment                      = "production"                                                              # 環境名
   cloudrun_health_check_path                = "/health"                                                                 # ヘルスチェックパス
   cloudrun_startup_probe_initial_delay      = 5                                                                         # 起動プローブ初期遅延（秒）- 本番は短め
-  cloudrun_startup_probe_timeout            = 10                                                                        # 起動プローブタイムアウト（秒）- 本番は長め
-  cloudrun_startup_probe_period             = 5                                                                         # 起動プローブ間隔（秒）- 本番は短間隔
+  cloudrun_startup_probe_timeout            = 9                                                                         # 起動プローブタイムアウト（秒）- periodより小さく設定
+  cloudrun_startup_probe_period             = 10                                                                        # 起動プローブ間隔（秒）- timeoutより大きく設定
   cloudrun_startup_probe_failure_threshold  = 5                                                                         # 起動プローブ失敗しきい値 - 本番は多め
   cloudrun_liveness_probe_initial_delay     = 60                                                                        # 生存プローブ初期遅延（秒）
   cloudrun_liveness_probe_timeout           = 10                                                                        # 生存プローブタイムアウト（秒）

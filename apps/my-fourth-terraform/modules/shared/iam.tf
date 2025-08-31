@@ -45,6 +45,7 @@ resource "google_project_iam_member" "github_actions_deployer_roles" {
     "roles/secretmanager.secretAccessor", # Secret Manager読み取り権限（設定値取得）
     "roles/logging.viewer",               # ログ閲覧権限（デバッグ用）
     "roles/monitoring.viewer",            # モニタリング閲覧権限（ヘルスチェック用）
+    "roles/compute.loadBalancerAdmin",    # CDNキャッシュ無効化権限（dashboard deploy用）
   ])
 
   project = var.project_id
