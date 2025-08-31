@@ -54,10 +54,6 @@ on:
         required: true
         type: string
         description: "GCS bucket name for frontend"
-    secrets:
-      DB_PASSWORD:
-        required: true
-        description: "Database password"
 
 jobs:
   # 統合ビルド・デプロイ: 全ての処理を一つのジョブで実行
