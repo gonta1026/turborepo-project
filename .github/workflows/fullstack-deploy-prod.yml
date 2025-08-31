@@ -11,8 +11,8 @@ on:
         required: false
         type: string
         default: "Manual full stack deployment to prod environment"
-# on:
-# mainブランチへのプッシュ（マージ）時に自動実行
+
+# mainブランチへのプッシュ（マージ）時に自動実行（現在は無効化）
 # push:
 #   branches:
 #     - main
@@ -20,15 +20,6 @@ on:
 #     - "apps/api/**"
 #     - "apps/dashboard/**"
 #     - ".github/workflows/**"
-
-# 手動実行オプション
-# workflow_dispatch:
-#   inputs:
-#     message:
-#       description: "Deployment message"
-#       required: false
-#       type: string
-#       default: "Manual full stack deployment to prod environment"
 
 jobs:
   # ===== 本番デプロイ =====
