@@ -446,8 +446,8 @@ resource "google_certificate_manager_certificate_map" "api_cert_map" {
 
 # 証明書マップエントリ：ドメインと証明書の関連付け
 resource "google_certificate_manager_certificate_map_entry" "api_cert_map_entry" {
-  name         = "api-cert-map-entry"                                            # 証明書マップエントリ名
-  project      = var.project_id                                                  # 所属するプロジェクトID
+  name         = "api-cert-map-entry"                                         # 証明書マップエントリ名
+  project      = var.project_id                                               # 所属するプロジェクトID
   map          = google_certificate_manager_certificate_map.api_cert_map.name # 証明書マップ参照
   certificates = [google_certificate_manager_certificate.api_ssl_cert.id]     # 使用する証明書
 
@@ -570,9 +570,14 @@ resource "google_sql_database_instance" "api_db_instance" {
       start_time                     = "04:00"                                     # バックアップ開始時刻（UTC）
       point_in_time_recovery_enabled = var.database_backup_enabled                 # ポイントインタイムリカバリ
       transaction_log_retention_days = var.database_transaction_log_retention_days # トランザクションログ保持日数
-      backup_retention_settings {
-        retained_backups = var.database_backup_retained_count # バックアップ保持数
-        retention_unit   = "COUNT"                            # 保持単位（個数ベース）
+
+      # バックアップが有効な場合のみ保持設定を作成
+      dynamic "backup_retention_settings" {
+        for_each = var.database_backup_enabled ? [1] : []
+        content {
+          retained_backups = var.database_backup_retained_count # バックアップ保持数
+          retention_unit   = "COUNT"                            # 保持単位（個数ベース）
+        }
       }
     }
 
@@ -683,6 +688,9 @@ resource "google_cloud_run_v2_service" "api_service" {
   name     = "api-service" # Cloud Runサービス名
   location = var.region    # デプロイリージョン
   project  = var.project_id
+
+  # 組織ポリシー解決後はデフォルト設定（全トラフィック許可）
+  # ingress = "INGRESS_TRAFFIC_ALL" # デフォルト値なので省略
 
   labels = merge(var.labels, {
     service = "api"
@@ -812,6 +820,28 @@ resource "google_cloud_run_v2_service" "api_service" {
     google_secret_manager_secret_version.api_database_password,
     google_project_iam_member.api_service_roles
   ]
+}
+
+# ======================================
+# Cloud Run パブリックアクセス権限
+# ======================================
+# 
+# 【目的】
+# Load BalancerからCloud Runサービスへの匿名アクセスを許可
+# 
+# 【なぜ必要？】
+# ユーザー → Load Balancer → Cloud Run の流れで、
+# Load Balancerは認証情報を転送せず、匿名でCloud Runを呼び出すため
+# 
+# 【組織ポリシーについて】
+# constraints/iam.allowedPolicyMemberDomains が有効な場合、
+# 組織管理者による例外設定または無効化が必要
+#
+resource "google_cloud_run_v2_service_iam_member" "public_invoker" {
+  location = google_cloud_run_v2_service.api_service.location
+  name     = google_cloud_run_v2_service.api_service.name
+  role     = "roles/run.invoker" # Cloud Runサービス呼び出し権限
+  member   = "allUsers"          # 全ユーザー（匿名含む）にアクセス許可
 }
 
 # ======================================

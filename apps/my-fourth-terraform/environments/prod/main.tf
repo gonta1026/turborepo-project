@@ -60,7 +60,7 @@ module "shared" {
   database_transaction_log_retention_days = 3                  # バックアップ保持数と同じに設定
 
   # Prod環境のCloud Run設定（本番信頼性重視）
-  cloudrun_min_instances                    = 1                                                                         # 最小インスタンス数（常時起動でレスポンス向上）
+  cloudrun_min_instances                    = 0                                                                         # 学習のために0にしている。                                                                    # 学習用なので 0にしているが、本番の時は1にしておくこと                                                                         # 最小インスタンス数（常時起動でレスポンス向上）
   cloudrun_max_instances                    = 10                                                                        # 最大インスタンス数（トラフィック増加に対応）
   cloudrun_image                            = "asia-northeast1-docker.pkg.dev/${var.project_id}/api-service/api:latest" # 初期ダミーイメージ
   cloudrun_cpu_limit                        = "2"                                                                       # CPU制限（2vCPU）
