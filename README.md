@@ -36,11 +36,12 @@ gcloud config configurations activate [account name]
 ```
 
 ```
-gcloud auth login
+gcloud auth application-default login
 ```
 
 ```
-gcloud auth application-default login
+  ## これでプロジェクトが何かを確認をする
+  gcloud config list --format="value(core.project)"
 ```
 
 #### アプリケーション開発

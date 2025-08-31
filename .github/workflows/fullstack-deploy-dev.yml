@@ -1,15 +1,15 @@
 # フルスタックアプリケーション開発環境デプロイワークフロー
 # APIとダッシュボードの変更検出時に自動でdev環境へデプロイ実行
 name: Deploy Full Stack to Dev
-# on:
-#   # 手動実行オプション
-#   workflow_dispatch:
-#     inputs:
-#       message:
-#         description: "Deployment message"
-#         required: false
-#         type: string
-#         default: "Manual full stack deployment to dev environment"
+on:
+  # 手動実行オプション
+  workflow_dispatch:
+    inputs:
+      message:
+        description: "Deployment message"
+        required: false
+        type: string
+        default: "Manual full stack deployment to dev environment"
 
 jobs:
   # ===== ダイレクトデプロイ（テストは別のciで事前に実行をする） =====
@@ -23,23 +23,22 @@ jobs:
     with:
       # デプロイ環境設定
       ENVIRONMENT: dev
-      PROJECT_ID: terraform-gcp-466623
+      PROJECT_ID: my-fourth-dev
       REGION: asia-northeast1
-      VPC_CONNECTOR_NAME: main-connector
+      VPC_CONNECTOR_NAME: api-connector
       # Cloud Runサービス名
       API_SERVICE_NAME: api-service
-      DASHBOARD_SERVICE_NAME: dashboard-service
       # 公開URL
       API_BASE_URL: https://dev.api.my-learn-iac-sample.site
       DASHBOARD_CLIENT_URL: https://dev.dashboard.my-learn-iac-sample.site
       # データベース接続情報
-      DB_HOST: "10.71.0.5"
+      DB_HOST: "10.187.144.5"
       DB_USER: "api_user"
       DB_NAME: "api_db"
+      # 非機密設定値
+      WIF_PROVIDER: projects/743590720330/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider
+      SERVICE_ACCOUNT: github-actions-deployer@my-fourth-dev.iam.gserviceaccount.com
+      GCS_BUCKET_NAME: my-fourth-dev-dashboard-frontend-542a29f1
     secrets:
-      # 機密情報（GitHub Secrets経由で安全に渡す）
-      db-password: ${{ secrets.DB_PASSWORD }} # データベースパスワード
-      wif-provider: ${{ secrets.DEV_WIF_PROVIDER }} # Workload Identity Provider
-      service-account: ${{ secrets.DEV_SERVICE_ACCOUNT }} # GCPサービスアカウント
-      gcs-bucket-name: ${{ secrets.DEV_GCS_BUCKET_NAME }} # フロントエンド用GCSバケット
-      cdn-url-map-name: ${{ secrets.DEV_CDN_URL_MAP_NAME }} # CDN URL マップ名
+      # 機密情報のみ
+      DB_PASSWORD: ${{ secrets.DEV_DB_PASSWORD }}
