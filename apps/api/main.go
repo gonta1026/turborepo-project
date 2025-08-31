@@ -9,7 +9,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -54,10 +53,25 @@ func main() {
 
 	// CORS設定
 	r.Use(func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", strings.Join(allowedOrigins, ","))
+		origin := c.Request.Header.Get("Origin")
+
+		// リクエストのOriginが許可リストに含まれているか確認
+		isAllowed := false
+		for _, allowedOrigin := range allowedOrigins {
+			if origin == allowedOrigin {
+				isAllowed = true
+				break
+			}
+		}
+
+		// 許可されたOriginの場合のみCORSヘッダーを設定
+		if isAllowed {
+			c.Header("Access-Control-Allow-Origin", origin)
+			c.Header("Access-Control-Allow-Credentials", "true")
+		}
+
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		c.Header("Access-Control-Allow-Credentials", "true")
 
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(http.StatusNoContent)
