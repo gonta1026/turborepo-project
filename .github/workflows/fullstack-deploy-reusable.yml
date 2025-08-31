@@ -22,10 +22,6 @@ on:
         required: true
         type: string
         description: "Cloud Run API service name"
-      DASHBOARD_SERVICE_NAME:
-        required: true
-        type: string
-        description: "Cloud Run Dashboard service name"
       API_BASE_URL:
         required: true
         type: string
@@ -46,17 +42,22 @@ on:
         required: true
         type: string
         description: "Database name"
+      WIF_PROVIDER:
+        required: true
+        type: string
+        description: "Workload Identity Provider"
+      SERVICE_ACCOUNT:
+        required: true
+        type: string
+        description: "GCP Service Account email"
+      GCS_BUCKET_NAME:
+        required: true
+        type: string
+        description: "GCS bucket name for frontend"
     secrets:
-      db-password:
+      DB_PASSWORD:
         required: true
-      wif-provider:
-        required: true
-      service-account:
-        required: true
-      gcs-bucket-name:
-        required: true
-      cdn-url-map-name:
-        required: true
+        description: "Database password"
 
 jobs:
   # 統合ビルド・デプロイ: 全ての処理を一つのジョブで実行
@@ -89,8 +90,8 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ secrets.wif-provider }}
-          service_account: ${{ secrets.service-account }}
+          workload_identity_provider: ${{ inputs.WIF_PROVIDER }}
+          service_account: ${{ inputs.SERVICE_ACCOUNT }}
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
@@ -155,7 +156,7 @@ jobs:
             --region=${{ inputs.REGION }} \
             --vpc-connector=${{ inputs.VPC_CONNECTOR_NAME }} \
             --set-env-vars="DB_HOST=${{ inputs.DB_HOST }},DB_USER=${{ inputs.DB_USER }},DB_NAME=${{ inputs.DB_NAME }}" \
-            --set-secrets="DB_PASSWORD=api-db-password:latest" \
+            --set-secrets="DB_PASSWORD=${{ secrets.DB_PASSWORD }}:latest" \
             --service-account=api-cloud-run-sa@${{ inputs.PROJECT_ID }}.iam.gserviceaccount.com \
             --command="sh" \
             --args="-c","export PGHOST=\$DB_HOST && export PGPORT=5432 && export PGUSER=\$DB_USER && export PGPASSWORD=\$DB_PASSWORD && export PGDATABASE=\$DB_NAME && export PGSSLMODE=require && migrate -path migrations -database postgres://\$PGUSER:\$PGPASSWORD@\$PGHOST:\$PGPORT/\$PGDATABASE?sslmode=\$PGSSLMODE up"
@@ -176,14 +177,14 @@ jobs:
         run: |
           echo "🚀 Deploying frontend to Cloud Storage..."
           # ビルドされたファイルをCloud Storageにアップロード
-          gsutil -m rsync -r -d ./apps/dashboard/dist gs://${{ secrets.gcs-bucket-name }}
-          gsutil -m setmeta -h "Cache-Control:public, max-age=3600" -r gs://${{ secrets.gcs-bucket-name }}/**
+          gsutil -m rsync -r -d ./apps/dashboard/dist gs://${{ inputs.GCS_BUCKET_NAME }}
+          gsutil -m setmeta -h "Cache-Control:public, max-age=3600" -r gs://${{ inputs.GCS_BUCKET_NAME }}/**
           echo "✅ Frontend deployed to Cloud Storage"
 
       - name: Invalidate CDN Cache
         run: |
           echo "🔄 Invalidating CDN cache..."
-          gcloud compute url-maps invalidate-cdn-cache ${{ secrets.cdn-url-map-name }} \
+          gcloud compute url-maps invalidate-cdn-cache dashboard-url-map \
             --path "/*" \
             --global
           echo "✅ CDN cache invalidated"

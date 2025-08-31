@@ -75,5 +75,15 @@ module "shared" {
   cloudrun_liveness_probe_initial_delay     = 60                                                                        # 生存プローブ初期遅延（秒）
   cloudrun_liveness_probe_timeout           = 10                                                                        # 生存プローブタイムアウト（秒）
   cloudrun_liveness_probe_period            = 60                                                                        # 生存プローブ間隔（秒）
-  cloudrun_liveness_probe_failure_threshold = 5                                                                         # 生存プローブ失敗しきい値
+  cloudrun_liveness_probe_failure_threshold = 5
+
+  # Dashboard設定
+  dashboard_domain_name           = "dashboard.my-learn-iac-sample.site" # Dashboard用ドメイン
+  dashboard_enable_cdn            = true                                 # CDN有効化
+  dashboard_cdn_cache_mode        = "CACHE_ALL_STATIC"                   # 静的ファイルをキャッシュ
+  dashboard_cdn_default_ttl       = 7200                                 # デフォルトTTL（2時間・prod用）
+  dashboard_cdn_client_ttl        = 7200                                 # クライアントTTL（2時間・prod用）
+  dashboard_cdn_max_ttl           = 172800                               # 最大TTL（48時間・prod用）
+  dashboard_cdn_serve_while_stale = 172800                               # ステイル配信時間（48時間・prod用）
+  dashboard_force_destroy_bucket  = false                                # 本番環境ではバケット削除保護
 }

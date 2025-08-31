@@ -272,3 +272,47 @@ variable "cloudrun_liveness_probe_failure_threshold" {
   description = "Failure threshold for liveness probe"
   type        = number
 }
+
+# ======================================
+# Dashboard設定
+# ======================================
+
+variable "dashboard_force_destroy_bucket" {
+  description = "Allow force destroy of dashboard bucket"
+  type        = bool
+}
+
+variable "dashboard_domain_name" {
+  description = "Domain name for dashboard (empty string to skip SSL/domain setup)"
+  type        = string
+}
+
+variable "dashboard_enable_cdn" {
+  description = "Enable CDN for dashboard"
+  type        = bool
+}
+
+variable "dashboard_cdn_cache_mode" {
+  description = "Cache mode for dashboard CDN"
+  type        = string
+}
+
+variable "dashboard_cdn_default_ttl" {
+  description = "Default TTL for dashboard CDN in seconds"
+  type        = number
+}
+
+variable "dashboard_cdn_client_ttl" {
+  description = "Client TTL for dashboard CDN in seconds"
+  type        = number
+}
+
+variable "dashboard_cdn_max_ttl" {
+  description = "Maximum TTL for dashboard CDN in seconds"
+  type        = number
+}
+
+variable "dashboard_cdn_serve_while_stale" {
+  description = "Serve while stale for dashboard CDN in seconds"
+  type        = number
+}

@@ -966,3 +966,185 @@ resource "google_compute_global_forwarding_rule" "api_http_forwarding_rule" {
   depends_on = [google_compute_target_http_proxy.api_http_proxy]
 }
 
+# ======================================
+# Dashboard Resources
+# ======================================
+
+# ======================================
+# Dashboard Static Website Resources
+# ======================================
+
+# Random ID for unique bucket name
+resource "random_id" "dashboard_bucket_suffix" {
+  byte_length = 4
+}
+
+# Dashboard GCS Bucket for static website hosting
+resource "google_storage_bucket" "dashboard_bucket" {
+  name          = "${var.project_id}-dashboard-frontend-${random_id.dashboard_bucket_suffix.hex}"
+  location      = var.region
+  force_destroy = var.dashboard_force_destroy_bucket
+  project       = var.project_id
+
+  uniform_bucket_level_access = true
+
+  website {
+    main_page_suffix = "index.html"
+    not_found_page   = "404.html"
+  }
+
+  cors {
+    origin          = ["*"]
+    method          = ["GET", "HEAD"]
+    response_header = ["*"]
+    max_age_seconds = 3600
+  }
+
+  labels = merge(local.common_labels, {
+    purpose = "dashboard-frontend"
+  })
+
+  depends_on = [google_project_service.required_apis]
+}
+
+# Dashboard bucket public read access
+resource "google_storage_bucket_iam_member" "dashboard_bucket_public_read" {
+  bucket = google_storage_bucket.dashboard_bucket.name
+  role   = "roles/storage.objectViewer"
+  member = "allUsers"
+}
+
+# Dashboard static IP
+resource "google_compute_global_address" "dashboard_static_ip" {
+  name         = "dashboard-static-ip"
+  project      = var.project_id
+  address_type = "EXTERNAL"
+  ip_version   = "IPV4"
+
+  depends_on = [google_project_service.required_apis]
+}
+
+# Dashboard CDN Backend Bucket
+resource "google_compute_backend_bucket" "dashboard_backend" {
+  name        = "dashboard-backend-bucket"
+  bucket_name = google_storage_bucket.dashboard_bucket.name
+  enable_cdn  = var.dashboard_enable_cdn
+  project     = var.project_id
+
+  cdn_policy {
+    cache_mode        = var.dashboard_cdn_cache_mode
+    default_ttl       = var.dashboard_cdn_default_ttl
+    client_ttl        = var.dashboard_cdn_client_ttl
+    max_ttl           = var.dashboard_cdn_max_ttl
+    negative_caching  = true
+    serve_while_stale = var.dashboard_cdn_serve_while_stale
+  }
+}
+
+# Dashboard URL Map
+resource "google_compute_url_map" "dashboard_url_map" {
+  name            = "dashboard-url-map"
+  default_service = google_compute_backend_bucket.dashboard_backend.id
+  project         = var.project_id
+
+  dynamic "host_rule" {
+    for_each = var.dashboard_domain_name != "" ? [1] : []
+    content {
+      hosts        = [var.dashboard_domain_name]
+      path_matcher = "allpaths"
+    }
+  }
+
+  dynamic "path_matcher" {
+    for_each = var.dashboard_domain_name != "" ? [1] : []
+    content {
+      name            = "allpaths"
+      default_service = google_compute_backend_bucket.dashboard_backend.id
+
+      path_rule {
+        paths   = ["/*"]
+        service = google_compute_backend_bucket.dashboard_backend.id
+      }
+    }
+  }
+}
+
+# Dashboard HTTP Proxy
+resource "google_compute_target_http_proxy" "dashboard_http_proxy" {
+  name    = "dashboard-http-proxy"
+  url_map = google_compute_url_map.dashboard_url_map.id
+  project = var.project_id
+}
+
+# Dashboard HTTP Forwarding Rule
+resource "google_compute_global_forwarding_rule" "dashboard_http_forwarding_rule" {
+  name       = "dashboard-http-forwarding-rule"
+  target     = google_compute_target_http_proxy.dashboard_http_proxy.id
+  port_range = "80"
+  ip_address = google_compute_global_address.dashboard_static_ip.address
+  project    = var.project_id
+}
+
+# Dashboard SSL Certificate
+resource "google_certificate_manager_certificate" "dashboard_cert" {
+  count = var.dashboard_domain_name != "" ? 1 : 0
+
+  name        = "dashboard-cert"
+  description = "SSL certificate for dashboard website"
+  project     = var.project_id
+
+  managed {
+    domains = [var.dashboard_domain_name]
+  }
+
+  labels = merge(local.common_labels, {
+    purpose = "dashboard-ssl"
+  })
+
+  depends_on = [google_project_service.required_apis]
+}
+
+# Dashboard Certificate Map Entry
+resource "google_certificate_manager_certificate_map_entry" "dashboard_cert_entry" {
+  count = var.dashboard_domain_name != "" ? 1 : 0
+
+  name         = "dashboard-cert-entry"
+  map          = google_certificate_manager_certificate_map.api_cert_map.name
+  certificates = [google_certificate_manager_certificate.dashboard_cert[0].id]
+  hostname     = var.dashboard_domain_name
+  project      = var.project_id
+
+  depends_on = [
+    google_certificate_manager_certificate.dashboard_cert,
+    google_certificate_manager_certificate_map.api_cert_map
+  ]
+}
+
+# Dashboard HTTPS Proxy
+resource "google_compute_target_https_proxy" "dashboard_https_proxy" {
+  count = var.dashboard_domain_name != "" ? 1 : 0
+
+  name            = "dashboard-https-proxy"
+  url_map         = google_compute_url_map.dashboard_url_map.id
+  certificate_map = "//certificatemanager.googleapis.com/${google_certificate_manager_certificate_map.api_cert_map.id}"
+  project         = var.project_id
+
+  depends_on = [
+    google_compute_url_map.dashboard_url_map,
+    google_certificate_manager_certificate_map_entry.dashboard_cert_entry
+  ]
+}
+
+# Dashboard HTTPS Forwarding Rule
+resource "google_compute_global_forwarding_rule" "dashboard_https_forwarding_rule" {
+  count = var.dashboard_domain_name != "" ? 1 : 0
+
+  name       = "dashboard-https-forwarding-rule"
+  target     = google_compute_target_https_proxy.dashboard_https_proxy[0].id
+  port_range = "443"
+  ip_address = google_compute_global_address.dashboard_static_ip.address
+  project    = var.project_id
+
+  depends_on = [google_compute_target_https_proxy.dashboard_https_proxy]
+}
+

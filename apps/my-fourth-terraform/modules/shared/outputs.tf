@@ -159,3 +159,52 @@ output "database_password_secret_id" {
   description = "Secret Manager secret ID for database password"
   value       = google_secret_manager_secret.api_database_password.secret_id
 }
+
+# ======================================
+# GitHub Actions用のOutputs
+# ======================================
+
+output "WIF_PROVIDER" {
+  description = "Workload Identity Federation Provider name for GitHub Actions"
+  value       = google_iam_workload_identity_pool_provider.github_actions.name
+}
+
+output "SERVICE_ACCOUNT" {
+  description = "Service Account email for GitHub Actions"
+  value       = google_service_account.github_actions_deployer.email
+}
+
+output "DB_PASSWORD" {
+  description = "Database password secret ID for GitHub Actions"
+  value       = google_secret_manager_secret.api_database_password.secret_id
+  sensitive   = true
+}
+
+# ======================================
+# Dashboard用のOutputs
+# ======================================
+
+output "GCS_BUCKET_NAME" {
+  description = "Dashboard GCS bucket name for GitHub Actions"
+  value       = google_storage_bucket.dashboard_bucket.name
+}
+
+output "CDN_URL_MAP_NAME" {
+  description = "Dashboard URL Map name for GitHub Actions"
+  value       = google_compute_url_map.dashboard_url_map.name
+}
+
+output "dashboard_static_ip_address" {
+  description = "Dashboard static IP address"
+  value       = google_compute_global_address.dashboard_static_ip.address
+}
+
+output "dashboard_static_ip_name" {
+  description = "Dashboard static IP name"
+  value       = google_compute_global_address.dashboard_static_ip.name
+}
+
+output "dashboard_bucket_url" {
+  description = "Dashboard GCS bucket URL"
+  value       = google_storage_bucket.dashboard_bucket.url
+}
