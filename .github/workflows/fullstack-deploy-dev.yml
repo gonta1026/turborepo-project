@@ -39,6 +39,3 @@ jobs:
       WIF_PROVIDER: projects/743590720330/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider
       SERVICE_ACCOUNT: github-actions-deployer@my-fourth-dev.iam.gserviceaccount.com
       GCS_BUCKET_NAME: my-fourth-dev-dashboard-frontend-542a29f1
-    secrets:
-      # 機密情報のみ
-      DB_PASSWORD: ${{ secrets.DEV_DB_PASSWORD }}
