@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -34,6 +35,13 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to load configuration: ", err)
 	}
+	var allowedOrigins []string
+	switch cfg.Environment {
+	case "production":
+		allowedOrigins = []string{"https://dashboard.my-learn-iac-sample.site"}
+	case "development":
+		allowedOrigins = []string{"http://localhost:5173", "https://dev.dashboard.my-learn-iac-sample.site"}
+	}
 
 	// Initialize database
 	if err := db.InitDB(cfg); err != nil {
@@ -46,7 +54,7 @@ func main() {
 
 	// CORS設定
 	r.Use(func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", cfg.DashboardClientURL)
+		c.Header("Access-Control-Allow-Origin", strings.Join(allowedOrigins, ","))
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		c.Header("Access-Control-Allow-Credentials", "true")

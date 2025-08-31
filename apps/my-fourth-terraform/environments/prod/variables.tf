@@ -36,9 +36,3 @@ variable "dev_team_group" {
   description = "Production team Google group email (prod-rakushite-developers group)"
   type        = string
 }
-
-variable "github_repository" {
-  description = "GitHub repository for Workload Identity Federation (format: owner/repo)"
-  type        = string
-  default     = "ootsukakatsurasei/my-turborepo" # デフォルト値を設定
-}

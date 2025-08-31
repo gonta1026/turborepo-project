@@ -677,6 +677,7 @@ resource "google_project_iam_member" "api_service_roles" {
   depends_on = [google_service_account.api_service]
 }
 
+
 # Cloud Runサービス
 # 重要: このリソースを作成する前に、Dockerイメージを事前にArtifact Registryにプッシュする必要があります
 # 手順:

@@ -27,6 +27,7 @@ variable "dev_team_group" {
 variable "github_repository" {
   description = "GitHub repository in format 'owner/repo' for Workload Identity Federation"
   type        = string
+  default     = "gonta1026/turborepo-project"
 }
 # VPC Access Connector設定
 variable "vpc_connector_min_instances" {

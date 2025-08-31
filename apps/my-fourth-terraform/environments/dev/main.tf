@@ -17,11 +17,10 @@ locals {
 module "shared" {
   source = "../../modules/shared"
 
-  project_id        = var.project_id
-  region            = var.region
-  labels            = local.common_labels
-  dev_team_group    = var.dev_team_group
-  github_repository = var.github_repository
+  project_id     = var.project_id
+  region         = var.region
+  labels         = local.common_labels
+  dev_team_group = var.dev_team_group
 
   # Dev環境固有の設定
   vpc_connector_min_instances  = 2
