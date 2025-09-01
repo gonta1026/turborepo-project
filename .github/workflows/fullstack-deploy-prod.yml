@@ -42,7 +42,7 @@ jobs:
       API_BASE_URL: https://api.my-learn-iac-sample.site
       DASHBOARD_CLIENT_URL: https://dashboard.my-learn-iac-sample.site
       # データベース接続情報（terraform outputから取得）
-      DB_HOST: "172.28.192.3"
+      DB_HOST: "172.28.192.5"
       DB_USER: "api_user"
       DB_NAME: "api_db"
       # 非機密設定値
