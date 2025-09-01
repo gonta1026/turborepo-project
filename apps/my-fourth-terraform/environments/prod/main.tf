@@ -27,12 +27,13 @@ module "shared" {
   labels         = local.common_labels
   dev_team_group = var.dev_team_group
 
-  # Prod環境固有の設定
-  vpc_connector_min_instances  = 3
-  vpc_connector_max_instances  = 10
-  vpc_connector_machine_type   = "e2-standard-4"
-  vpc_connector_min_throughput = 300           # 現在の設定を維持
-  vpc_connector_max_throughput = 1000          # 現在の設定を維持
+  # Prod環境固有の設定（学習用コスト削減設定）
+  # Production recommended: min_instances=3, max_instances=10, machine_type="e2-standard-4", min_throughput=300, max_throughput=1000
+  vpc_connector_min_instances  = 2             # 学習用: dev環境に合わせてコスト削減（本番推奨: 3）
+  vpc_connector_max_instances  = 3             # 学習用: dev環境に合わせてコスト削減（本番推奨: 10）
+  vpc_connector_machine_type   = "e2-micro"    # 学習用: dev環境に合わせてコスト削減（本番推奨: "e2-standard-4"）
+  vpc_connector_min_throughput = 200           # 学習用: e2-microに適したスループット（本番推奨: 300）
+  vpc_connector_max_throughput = 300           # 学習用: e2-microに適したスループット（本番推奨: 1000）
   subnet_flow_sampling         = 0.5           # 本番環境は詳細ログ
   nat_log_filter               = "ERRORS_ONLY" # エラーのみログ出力
   bucket_lifecycle_age_days    = 90            # 長期保存
@@ -49,21 +50,23 @@ module "shared" {
   private_service_connection_count  = 1                              # Cloud SQL用のPrivate Service Connection
   private_service_connection_prefix = 20                             # /20のIPアドレス範囲を確保
 
-  # Prod環境のデータベース設定（最小コスト構成）
-  database_deletion_protection            = true               # 本番環境では削除保護を有効（誤削除防止）
-  database_tier                           = "db-custom-1-3840" # PostgreSQL用最小構成（1vCPU, 3.75GB）
-  database_availability_type              = "ZONAL"            # 単一ゾーンでコスト削減（本番でも最小コスト重視）
-  database_disk_size                      = 20                 # 20GB（必要最小限サイズ）
-  database_backup_retained_count          = 3                  # バックアップ保持数（最小限の3日間）
-  database_backup_enabled                 = true               # バックアップを有効化
-  database_transaction_log_retention_days = 3                  # バックアップ保持数と同じに設定
+  # Prod環境のデータベース設定（学習用コスト削減構成）
+  # Production recommended: deletion_protection=true, tier="db-custom-1-3840", backup_enabled=true, backup_retained_count=3
+  database_deletion_protection            = false         # 学習用: dev環境に合わせて削除保護無効（本番推奨: true）
+  database_tier                           = "db-g1-small" # 学習用: 共有コア最小インスタンス（本番推奨: "db-custom-1-3840"）
+  database_availability_type              = "ZONAL"       # 単一ゾーンでコスト削減
+  database_disk_size                      = 10            # 学習用: dev環境に合わせて10GB（本番推奨: 20GB）
+  database_backup_retained_count          = 0             # 学習用: バックアップ無効でストレージコストゼロ（本番推奨: 3）
+  database_backup_enabled                 = false         # 学習用: バックアップ無効化（本番推奨: true）
+  database_transaction_log_retention_days = 1             # 学習用: 最小値（本番推奨: 3）
 
-  # Prod環境のCloud Run設定（本番信頼性重視）
-  cloudrun_min_instances                    = 0                                                                         # 学習のために0にしている。                                                                    # 学習用なので 0にしているが、本番の時は1にしておくこと                                                                         # 最小インスタンス数（常時起動でレスポンス向上）
-  cloudrun_max_instances                    = 10                                                                        # 最大インスタンス数（トラフィック増加に対応）
+  # Prod環境のCloud Run設定（学習用コスト削減構成）
+  # Production recommended: min_instances=1, max_instances=10, cpu_limit="2", memory_limit="1Gi"
+  cloudrun_min_instances                    = 0                                                                         # 学習用: コスト削減（本番推奨: 1）
+  cloudrun_max_instances                    = 3                                                                         # 学習用: dev環境に合わせてコスト削減（本番推奨: 10）
   cloudrun_image                            = "asia-northeast1-docker.pkg.dev/${var.project_id}/api-service/api:latest" # 初期ダミーイメージ
-  cloudrun_cpu_limit                        = "2"                                                                       # CPU制限（2vCPU）
-  cloudrun_memory_limit                     = "1Gi"                                                                     # メモリ制限（1GB）
+  cloudrun_cpu_limit                        = "1"                                                                       # 学習用: dev環境に合わせてコスト削減（本番推奨: "2"）
+  cloudrun_memory_limit                     = "512Mi"                                                                   # 学習用: dev環境に合わせてコスト削減（本番推奨: "1Gi"）
   cloudrun_port                             = 8080                                                                      # アプリポート
   cloudrun_environment                      = "production"                                                              # 環境名
   cloudrun_health_check_path                = "/health"                                                                 # ヘルスチェックパス
