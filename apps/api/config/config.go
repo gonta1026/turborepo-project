@@ -13,11 +13,17 @@ type Config struct {
 	DBPassword string `envconfig:"DB_PASSWORD" required:"true"`
 	DBName     string `envconfig:"DB_NAME" required:"true"`
 	DBSSLMode  string `envconfig:"DB_SSLMODE" default:"disable"`
-	
-	
+
 	// Environment
 	Environment string `envconfig:"ENVIRONMENT" default:"development"`
 	
+	// Testing
+	UseMock bool `envconfig:"USE_MOCK" default:"false"`
+
+	// External API settings
+	NotificationAPIURL string `envconfig:"NOTIFICATION_API_URL" default:"https://api.notifications.example.com"`
+	NotificationAPIKey string `envconfig:"NOTIFICATION_API_KEY" default:"test-api-key"`
+
 	// CORS settings
 	DashboardClientURL string `envconfig:"DASHBOARD_CLIENT_URL" default:"http://localhost:5173"`
 }
@@ -28,7 +34,7 @@ func Load() (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
-	
+
 	return &config, nil
 }
 
@@ -42,4 +48,3 @@ func (c *Config) GetDSN() string {
 		c.DBSSLMode,
 	)
 }
-

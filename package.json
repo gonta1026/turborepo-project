@@ -11,6 +11,7 @@
     "biome:fix": "biome check apps/ packages/ --write",
     "biome:check-all": "turbo run biome:check",
     "biome:fix-all": "turbo run biome:fix",
+    "generate:types": "cd packages/api-client && npm run generate",
     "terraform:format": "turbo run terraform:format",
     "terraform:validate": "turbo run terraform:validate",
     "terraform:plan": "turbo run terraform:plan",
@@ -23,6 +24,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.1.2",
+    "orval": "^7.11.2",
     "prettier": "^3.2.5",
     "turbo": "^2.5.5"
   },

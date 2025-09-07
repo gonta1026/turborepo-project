@@ -1,4 +1,4 @@
-.PHONY: migrate-up migrate-down migrate-create docker-up docker-down test dev
+.PHONY: migrate-up migrate-down migrate-create docker-up docker-down test dev swagger
 
 # Migration commands (ローカル開発用 - ハードコーディング)
 
@@ -28,3 +28,7 @@ test:
 # Development with hot reload (requires Air to be installed)
 dev: docker-up
 	air
+
+# Generate swagger documentation
+swagger:
+	go run github.com/swaggo/swag/cmd/swag init
