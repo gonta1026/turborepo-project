@@ -27,6 +27,18 @@ jobs:
           rm -rf node_modules package-lock.json
           npm install
 
+      # Swagger docs生成（APIビルドの前に必要）
+      - name: Setup Go for Swagger Generation
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/api/go.mod
+          cache: false
+
+      - name: Generate Swagger Documentation
+        run: |
+          cd apps/api
+          go run github.com/swaggo/swag/cmd/swag init
+
       # 全プロジェクトのビルド・リント実行
       - name: Build and Lint All Packages
         run: |

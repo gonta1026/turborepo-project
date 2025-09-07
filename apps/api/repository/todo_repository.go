@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"api/models"
+	"api/app/models"
 	"database/sql"
 	"fmt"
 
@@ -29,7 +29,6 @@ func NewTodoRepository(db *sqlx.DB) TodoRepository {
 func (r *todoRepository) GetAll() ([]models.Todo, error) {
 	var todos []models.Todo
 	query := `SELECT id, title, description, completed, priority, created_at, updated_at FROM todos ORDER BY created_at DESC`
-	
 	err := r.db.Select(&todos, query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch todos: %w", err)
@@ -41,7 +40,7 @@ func (r *todoRepository) GetAll() ([]models.Todo, error) {
 func (r *todoRepository) GetByID(id int) (*models.Todo, error) {
 	var todo models.Todo
 	query := `SELECT id, title, description, completed, priority, created_at, updated_at FROM todos WHERE id = $1`
-	
+
 	err := r.db.Get(&todo, query, id)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -55,17 +54,17 @@ func (r *todoRepository) GetByID(id int) (*models.Todo, error) {
 
 func (r *todoRepository) Create(title, description, priority string) (*models.Todo, error) {
 	var todo models.Todo
-	
+
 	// Validate priority
 	if priority == "" {
 		priority = "medium"
 	}
-	
+
 	query := `
 		INSERT INTO todos (title, description, completed, priority, created_at, updated_at) 
 		VALUES ($1, $2, false, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) 
 		RETURNING id, title, description, completed, priority, created_at, updated_at`
-	
+
 	err := r.db.QueryRowx(query, title, description, priority).StructScan(&todo)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create todo: %w", err)

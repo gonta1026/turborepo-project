@@ -1,124 +1,72 @@
+import {
+  type ModelsTodoPriority,
+  type RequestCreateTodoRequest,
+  type RequestUpdateTodoRequest,
+  type ResponseErrorResponse,
+  useDeleteApiV1TodosId,
+  useGetApiV1Todos,
+  usePostApiV1Todos,
+  usePutApiV1TodosId,
+} from '@repo/api-client'
 import { Header } from '@repo/ui'
-import { useCallback, useEffect, useState } from 'react'
-
-interface Todo {
-  id: number
-  title: string
-  description: string
-  completed: boolean
-  priority: string
-  created_at: string
-  updated_at: string
-}
-
-interface CreateTodoRequest {
-  title: string
-  description: string
-  priority: string
-}
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
+import { useState } from 'react'
 
 export const Todos = () => {
-  const [todos, setTodos] = useState<Todo[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [newTodo, setNewTodo] = useState<CreateTodoRequest>({
+  const [newTodo, setNewTodo] = useState<RequestCreateTodoRequest>({
     title: '',
     description: '',
-    priority: 'medium',
+    priority: 'medium' as ModelsTodoPriority,
   })
 
-  const fetchTodos = useCallback(async () => {
-    try {
-      setLoading(true)
-      const response = await fetch(`${API_BASE_URL}/todos`)
-      if (!response.ok) {
-        throw new Error('Failed to fetch todos')
-      }
-      const data = await response.json()
-      setTodos(data.data || [])
-      setError(null)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  // React Query hooks
+  const {
+    data: todosResponse,
+    isLoading,
+    error: todosError,
+    refetch,
+  } = useGetApiV1Todos({
+    query: {
+      retry: 0, // リトライを無効化してエラーをすぐに表示
+    },
+  })
+  const { error: createTodoError, mutate: createTodoMutation, isPending } = usePostApiV1Todos()
+  const updateTodoMutation = usePutApiV1TodosId({
+    mutation: {
+      onSuccess: () => refetch(),
+    },
+  })
+  const deleteTodoMutation = useDeleteApiV1TodosId({
+    mutation: {
+      onSuccess: () => refetch(),
+    },
+  })
+
+  const todos = todosResponse?.data?.data || []
 
   const createTodo = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newTodo.title.trim()) {
-      setError('Title is required')
-      return
-    }
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/todos`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newTodo),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to create todo')
-      }
-
-      setNewTodo({ title: '', description: '', priority: 'medium' })
-      fetchTodos()
-      setError(null)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
-    }
+    if (!newTodo.title.trim()) return
+    createTodoMutation({ data: newTodo })
   }
 
-  const toggleTodo = async (id: number, completed: boolean) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/todos/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ completed: !completed }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to update todo')
-      }
-
-      fetchTodos()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
+  // createTodoのエラーをログ出力
+  const toggleTodo = (id: number, completed: boolean) => {
+    const updateData: RequestUpdateTodoRequest = {
+      completed: !completed,
     }
+    updateTodoMutation.mutate({
+      id,
+      data: updateData,
+    })
   }
 
-  const deleteTodo = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this todo?')) {
-      return
-    }
+  const deleteTodo = (id: number) => {
+    if (!confirm('Are you sure you want to delete this todo?')) return
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/todos/${id}`, {
-        method: 'DELETE',
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to delete todo')
-      }
-
-      fetchTodos()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
-    }
+    deleteTodoMutation.mutate({ id })
   }
 
-  useEffect(() => {
-    fetchTodos()
-  }, [fetchTodos])
-
-  const getPriorityColor = (priority: string) => {
+  const getPriorityColor = (priority: ModelsTodoPriority) => {
     switch (priority) {
       case 'high':
         return '#ff4757'
@@ -136,19 +84,8 @@ export const Todos = () => {
       <Header title="TODO Manager" />
 
       <div className="content">
-        {error && (
-          <div
-            style={{
-              backgroundColor: '#ff4757',
-              color: 'white',
-              padding: '10px',
-              borderRadius: '4px',
-              marginBottom: '20px',
-            }}
-          >
-            {error}
-          </div>
-        )}
+        {createTodoError && <ErrorResponse error={createTodoError} />}
+        {todosError && <ErrorResponse error={todosError} />}
 
         <div className="todo-form-container">
           <h2>Create New TODO</h2>
@@ -173,7 +110,7 @@ export const Todos = () => {
             <div>
               <select
                 value={newTodo.priority}
-                onChange={(e) => setNewTodo({ ...newTodo, priority: e.target.value })}
+                onChange={(e) => setNewTodo({ ...newTodo, priority: e.target.value as ModelsTodoPriority })}
                 style={{ width: '100%', padding: '8px', marginBottom: '10px' }}
               >
                 <option value="low">Low Priority</option>
@@ -183,23 +120,24 @@ export const Todos = () => {
             </div>
             <button
               type="submit"
+              disabled={isPending}
               style={{
-                backgroundColor: '#2ed573',
+                backgroundColor: isPending ? '#95a5a6' : '#2ed573',
                 color: 'white',
                 padding: '10px 20px',
                 border: 'none',
                 borderRadius: '4px',
-                cursor: 'pointer',
+                cursor: isPending ? 'not-allowed' : 'pointer',
               }}
             >
-              Create TODO
+              {isPending ? 'Creating...' : 'Create TODO'}
             </button>
           </form>
         </div>
 
         <div className="todos-container">
           <h2>TODO List</h2>
-          {loading ? (
+          {isLoading ? (
             <p>Loading todos...</p>
           ) : todos.length === 0 ? (
             <p>No todos found. Create your first todo above!</p>
@@ -235,40 +173,47 @@ export const Todos = () => {
                           {todo.priority}
                         </span>
                         <span style={{ fontSize: '12px', color: '#999' }}>
-                          Created: {new Date(todo.created_at).toLocaleDateString()}
+                          Created:{' '}
+                          {todo.created_at ? new Date(String(todo.created_at)).toLocaleDateString() : 'Unknown'}
                         </span>
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: '5px', marginLeft: '10px' }}>
                       <button
                         type="button"
-                        onClick={() => toggleTodo(todo.id, todo.completed)}
+                        onClick={() => toggleTodo(todo.id || 0, todo.completed || false)}
+                        disabled={updateTodoMutation.isPending}
                         style={{
-                          backgroundColor: todo.completed ? '#ffa502' : '#2ed573',
+                          backgroundColor: updateTodoMutation.isPending
+                            ? '#95a5a6'
+                            : todo.completed
+                              ? '#ffa502'
+                              : '#2ed573',
                           color: 'white',
                           border: 'none',
                           padding: '5px 10px',
                           borderRadius: '3px',
-                          cursor: 'pointer',
+                          cursor: updateTodoMutation.isPending ? 'not-allowed' : 'pointer',
                           fontSize: '12px',
                         }}
                       >
-                        {todo.completed ? 'Undo' : 'Complete'}
+                        {updateTodoMutation.isPending ? '...' : todo.completed ? 'Undo' : 'Complete'}
                       </button>
                       <button
                         type="button"
-                        onClick={() => deleteTodo(todo.id)}
+                        onClick={() => deleteTodo(todo.id || 0)}
+                        disabled={deleteTodoMutation.isPending}
                         style={{
-                          backgroundColor: '#ff4757',
+                          backgroundColor: deleteTodoMutation.isPending ? '#95a5a6' : '#ff4757',
                           color: 'white',
                           border: 'none',
                           padding: '5px 10px',
                           borderRadius: '3px',
-                          cursor: 'pointer',
+                          cursor: deleteTodoMutation.isPending ? 'not-allowed' : 'pointer',
                           fontSize: '12px',
                         }}
                       >
-                        Delete
+                        {deleteTodoMutation.isPending ? '...' : 'Delete'}
                       </button>
                     </div>
                   </div>
@@ -278,6 +223,32 @@ export const Todos = () => {
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+const ErrorResponse = ({ error }: { error: ResponseErrorResponse }) => {
+  return (
+    <div
+      style={{
+        backgroundColor: '#ff4757',
+        color: 'white',
+        padding: '10px',
+        borderRadius: '4px',
+      }}
+    >
+      {error.message}
+      {/* バリデーションエラー詳細表示 */}
+      {error.details.length > 0 && (
+        <div style={{ marginTop: '10px' }}>
+          <strong>入力エラー:</strong>
+          <ul style={{ textAlign: 'left', margin: '5px 0', paddingLeft: '20px' }}>
+            {error.details.map((validationError, index: number) => (
+              <li key={`${validationError.field}-${index}`}>{validationError.message}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   )
 }

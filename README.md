@@ -6,7 +6,6 @@
 - `api`: Go Ginフレームワークを使用したAPIサーバー
 - `terraform`: GCPリソース管理用のTerraform設定
 - `@repo/ui`: `dashboard`アプリケーションで共有されるコンポーネントライブラリ
-- `@repo/biome-config`: 共有された`Biome`設定
 - `@repo/typescript-config`: モノレポ全体で使用される`tsconfig.json`
 
 各パッケージとアプリは100% [TypeScript](https://www.typescriptlang.org/)です（APIアプリはGoです）。

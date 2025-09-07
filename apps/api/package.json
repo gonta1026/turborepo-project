@@ -9,7 +9,9 @@
     "clean": "rm -rf bin/",
     "test": "go test ./...",
     "format-and-lint": "go fmt ./... && go vet ./...",
-    "format-and-lint:fix": "go fmt ./... && go vet ./... && go mod tidy"
+    "format-and-lint:fix": "go fmt ./... && go vet ./... && go mod tidy",
+    "generate-swagger": "swag init",
+    "generate-types": "./scripts/generate-types.sh"
   },
   "keywords": [
     "go",
