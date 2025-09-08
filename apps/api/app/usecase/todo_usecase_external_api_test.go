@@ -19,13 +19,13 @@ func TestTodoUsecase_CreateTodo_WithExternalAPI_Mock(t *testing.T) {
 	// 実DBセットアップ（Repository部分は実データベース使用）
 	db, cleanup := test.SetupTestDB()
 	defer cleanup()
-	
+
 	// 実Repository作成
 	todoRepo := repository.NewTodoRepository(db)
-	
+
 	// Mock外部APIクライアント作成
 	mockNotificationClient := extMock.NewMockNotificationClient(t)
-	
+
 	// UseCase作成（Repository=実DB, 外部API=Mock）
 	todoUsecase := usecase.NewTodoUsecase(todoRepo, mockNotificationClient)
 
@@ -46,7 +46,7 @@ func TestTodoUsecase_CreateTodo_WithExternalAPI_Mock(t *testing.T) {
 		Message: "「外部API統合テスト」が作成されました。優先度: high",
 		Type:    "push",
 	}
-	
+
 	expectedNotificationResp := &external.NotificationResponse{
 		NotificationID: "notif-12345",
 		Status:         "sent",
@@ -68,15 +68,15 @@ func TestTodoUsecase_CreateTodo_WithExternalAPI_Mock(t *testing.T) {
 	assert.NotZero(t, result.ID) // DB に実際に保存されたID
 	assert.Equal(t, "外部API統合テスト", result.Title)
 	assert.Equal(t, "Mock通知送信のテスト", result.Description)
-	assert.Equal(t, "high", result.Priority)
+	assert.Equal(t, models.PriorityHigh, result.Priority)
 	assert.False(t, result.Completed)
-	
+
 	// 実DBに保存されていることを確認
 	savedTodo, err := todoRepo.GetByID(result.ID)
 	require.NoError(t, err)
 	assert.NotNil(t, savedTodo)
 	assert.Equal(t, "外部API統合テスト", savedTodo.Title)
-	
+
 	// Mockの期待値が満たされたことを自動検証（testifyが自動で行う）
 }
 
@@ -84,13 +84,13 @@ func TestTodoUsecase_CreateTodo_WithExternalAPI_Error(t *testing.T) {
 	// 実DBセットアップ
 	db, cleanup := test.SetupTestDB()
 	defer cleanup()
-	
+
 	// 実Repository作成
 	todoRepo := repository.NewTodoRepository(db)
-	
+
 	// Mock外部APIクライアント作成
 	mockNotificationClient := extMock.NewMockNotificationClient(t)
-	
+
 	// UseCase作成
 	todoUsecase := usecase.NewTodoUsecase(todoRepo, mockNotificationClient)
 
@@ -123,7 +123,7 @@ func TestTodoUsecase_CreateTodo_WithExternalAPI_Error(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "通知エラーテスト", result.Title)
-	
+
 	// DBには正常に保存されていることを確認
 	savedTodo, err := todoRepo.GetByID(result.ID)
 	require.NoError(t, err)

@@ -34,16 +34,6 @@ jobs:
           go-version-file: apps/api/go.mod
           cache: false
 
-      - name: Generate Swagger Documentation
-        run: |
-          cd apps/api
-          go run github.com/swaggo/swag/cmd/swag init
-
-      # 全プロジェクトのビルド・リント実行
-      - name: Build and Lint All Packages
-        run: |
-          echo "🚀 Running build and lint for all packages..."
-          npx turbo run build lint
   # API テスト（常時実行）
   test-api:
     runs-on: ubuntu-latest

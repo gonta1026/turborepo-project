@@ -380,7 +380,7 @@ func TestTodoUsecase_PriorityFeature(t *testing.T) {
 	defer cleanup()
 
 	// Test creating todos with different priorities
-	priorities := []string{"low", "medium", "high"}
+	priorities := []models.TodoPriority{models.PriorityLow, models.PriorityMedium, models.PriorityHigh}
 	createdTodos := make([]*models.Todo, len(priorities))
 
 	for i, priority := range priorities {
@@ -396,10 +396,10 @@ func TestTodoUsecase_PriorityFeature(t *testing.T) {
 
 	// Test updating priority
 	updatedTodo, err := todoUsecase.UpdateTodo(createdTodos[0].ID, &models.Todo{
-		Priority: "high",
+		Priority: models.PriorityHigh,
 	})
 	require.NoError(t, err)
-	assert.Equal(t, "high", updatedTodo.Priority)
+	assert.Equal(t, models.PriorityHigh, updatedTodo.Priority)
 	assert.Equal(t, createdTodos[0].Title, updatedTodo.Title) // Other fields should remain unchanged
 
 	// Test GetAll returns todos with priority
@@ -410,11 +410,11 @@ func TestTodoUsecase_PriorityFeature(t *testing.T) {
 	// Verify all todos have priority field
 	for _, todo := range allTodos {
 		assert.NotEmpty(t, todo.Priority)
-		assert.Contains(t, []string{"low", "medium", "high"}, todo.Priority)
+		assert.Contains(t, []models.TodoPriority{models.PriorityLow, models.PriorityMedium, models.PriorityHigh}, todo.Priority)
 	}
 
 	// Test GetByID returns todo with priority
 	retrievedTodo, err := todoUsecase.GetTodoByID(createdTodos[1].ID)
 	require.NoError(t, err)
-	assert.Equal(t, "medium", retrievedTodo.Priority)
+	assert.Equal(t, models.PriorityMedium, retrievedTodo.Priority)
 }
