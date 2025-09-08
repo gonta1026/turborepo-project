@@ -69,13 +69,13 @@ func (u *todoUsecase) CreateTodo(todo *models.Todo) (*models.Todo, error) {
 	}
 
 	// Validate priority
-	if todo.Priority != "" && todo.Priority != "low" && todo.Priority != "medium" && todo.Priority != "high" {
+	if todo.Priority != "" && todo.Priority != models.PriorityLow && todo.Priority != models.PriorityMedium && todo.Priority != models.PriorityHigh {
 		return nil, ErrInvalidInput
 	}
 
 	// Set default priority
 	if todo.Priority == "" {
-		todo.Priority = "medium"
+		todo.Priority = models.PriorityMedium
 	}
 
 	// Create todo in database
@@ -119,7 +119,7 @@ func (u *todoUsecase) UpdateTodo(id int, todo *models.Todo) (*models.Todo, error
 	}
 
 	// Validate priority
-	if todo.Priority != "" && todo.Priority != "low" && todo.Priority != "medium" && todo.Priority != "high" {
+	if todo.Priority != "" && todo.Priority != models.PriorityLow && todo.Priority != models.PriorityMedium && todo.Priority != models.PriorityHigh {
 		return nil, ErrInvalidInput
 	}
 
