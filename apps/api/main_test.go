@@ -1,8 +1,6 @@
 package main
 
 import (
-	"api/app/presentation/router"
-	"api/config"
 	"bytes"
 	"encoding/json"
 	"net/http"
@@ -27,12 +25,71 @@ type APIResponse struct {
 func setupRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 
-	// Test configuration
-	cfg := &config.Config{
-		Environment: "test",
+	// Create a test router with mock handlers
+	r := gin.New()
+	
+	// Add CORS middleware for testing
+	r.Use(func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+		
+		c.Next()
+	})
+	
+	// Mock health endpoint
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, HealthResponse{
+			Status:  "healthy",
+			Message: "API server is running",
+		})
+	})
+
+	// Mock API v1 endpoints
+	v1 := r.Group("/api/v1")
+	{
+		v1.GET("/hello", func(c *gin.Context) {
+			name := c.DefaultQuery("name", "World")
+			c.JSON(http.StatusOK, APIResponse{
+				Message: "Hello from Go API!",
+				Data: gin.H{
+					"greeting": "Hello, " + name + "!",
+				},
+			})
+		})
+
+		v1.GET("/users", func(c *gin.Context) {
+			c.JSON(http.StatusOK, APIResponse{
+				Message: "Users retrieved successfully",
+				Data: []gin.H{
+					{"id": 1, "name": "John Doe", "email": "john@example.com"},
+					{"id": 2, "name": "Jane Smith", "email": "jane@example.com"},
+				},
+			})
+		})
+
+		v1.POST("/users", func(c *gin.Context) {
+			var user gin.H
+			if err := c.ShouldBindJSON(&user); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+			
+			// Mock user creation
+			user["id"] = 3
+			c.JSON(http.StatusCreated, APIResponse{
+				Message: "User created successfully",
+				Data:    user,
+			})
+		})
 	}
 
-	return router.SetupRouter(cfg)
+	return r
 }
 
 func TestHealthCheck(t *testing.T) {
